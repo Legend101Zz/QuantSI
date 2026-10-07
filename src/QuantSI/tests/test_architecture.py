@@ -20,6 +20,7 @@ LAYERS = [
     "_errors",
     "_dimension",
     "_registry",
+    "_ufuncs",
     "_quantity",
     "_unit",
     "_formatting",

@@ -38,14 +38,6 @@ from ._dimension import (
 from ._errors import DimensionMismatchError as DimensionMismatchError
 from ._formatting import in_best_unit as in_best_unit, in_unit as in_unit
 from ._quantity import (
-    UFUNCS_CHANGE_DIMENSIONS as UFUNCS_CHANGE_DIMENSIONS,
-    UFUNCS_COMPARISONS as UFUNCS_COMPARISONS,
-    UFUNCS_DIMENSIONLESS as UFUNCS_DIMENSIONLESS,
-    UFUNCS_DIMENSIONLESS_TWOARGS as UFUNCS_DIMENSIONLESS_TWOARGS,
-    UFUNCS_INTEGERS as UFUNCS_INTEGERS,
-    UFUNCS_LOGICAL as UFUNCS_LOGICAL,
-    UFUNCS_MATCHING_DIMENSIONS as UFUNCS_MATCHING_DIMENSIONS,
-    UFUNCS_PRESERVE_DIMENSIONS as UFUNCS_PRESERVE_DIMENSIONS,
     Quantity as Quantity,
     quantity_with_dimensions as quantity_with_dimensions,
     wrap_function_keep_dimensions as wrap_function_keep_dimensions,
@@ -58,6 +50,16 @@ from ._registry import (
     register_new_unit as register_new_unit,
     standard_unit_register as standard_unit_register,
     user_unit_register as user_unit_register,
+)
+from ._ufuncs import (
+    UFUNCS_CHANGE_DIMENSIONS as UFUNCS_CHANGE_DIMENSIONS,
+    UFUNCS_COMPARISONS as UFUNCS_COMPARISONS,
+    UFUNCS_DIMENSIONLESS as UFUNCS_DIMENSIONLESS,
+    UFUNCS_DIMENSIONLESS_TWOARGS as UFUNCS_DIMENSIONLESS_TWOARGS,
+    UFUNCS_INTEGERS as UFUNCS_INTEGERS,
+    UFUNCS_LOGICAL as UFUNCS_LOGICAL,
+    UFUNCS_MATCHING_DIMENSIONS as UFUNCS_MATCHING_DIMENSIONS,
+    UFUNCS_PRESERVE_DIMENSIONS as UFUNCS_PRESERVE_DIMENSIONS,
 )
 from ._unit import Unit as Unit
 from ._utils import _flatten as _flatten, _short_str as _short_str

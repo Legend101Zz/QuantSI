@@ -23,107 +23,18 @@ from ._dimension import (
 )
 from ._errors import DimensionMismatchError
 from ._registry import additional_unit_register, standard_unit_register, user_unit_register
+from ._ufuncs import RULES, Rule
 from ._utils import _flatten, set_module
 
-# Note: A list of numpy ufuncs can be found here:
-# http://docs.scipy.org/doc/numpy/reference/ufuncs.html#available-ufuncs
-
-#: ufuncs that work on all dimensions and preserve the dimensions, e.g. abs
-UFUNCS_PRESERVE_DIMENSIONS = [
-    "absolute",
-    "rint",
-    "negative",
-    "positive",
-    "conj",
-    "conjugate",
-    "floor",
-    "ceil",
-    "trunc",
-]
-
-#: ufuncs that work on all dimensions but change the dimensions, e.g. square
-UFUNCS_CHANGE_DIMENSIONS = [
-    "multiply",
-    "divide",
-    "true_divide",
-    "floor_divide",
-    "sqrt",
-    "square",
-    "reciprocal",
-    "dot",
-    "matmul",
-]
-
-#: ufuncs that work with matching dimensions, e.g. add
-UFUNCS_MATCHING_DIMENSIONS = [
-    "add",
-    "subtract",
-    "maximum",
-    "minimum",
-    "remainder",
-    "mod",
-    "fmod",
-]
-
-#: ufuncs that compare values, i.e. work only with matching dimensions but do
-#: not result in a value with dimensions, e.g. equals
-UFUNCS_COMPARISONS = [
-    "less",
-    "less_equal",
-    "greater",
-    "greater_equal",
-    "equal",
-    "not_equal",
-]
-
-#: Logical operations that work on all quantities and return boolean arrays
-UFUNCS_LOGICAL = [
-    "logical_and",
-    "logical_or",
-    "logical_xor",
-    "logical_not",
-    "isreal",
-    "iscomplex",
-    "isfinite",
-    "isinf",
-    "isnan",
-]
-
-#: ufuncs that only work on dimensionless quantities
-UFUNCS_DIMENSIONLESS = [
-    "sin",
-    "sinh",
-    "arcsin",
-    "arcsinh",
-    "cos",
-    "cosh",
-    "arccos",
-    "arccosh",
-    "tan",
-    "tanh",
-    "arctan",
-    "arctanh",
-    "log",
-    "log2",
-    "log10",
-    "log1p",
-    "exp",
-    "exp2",
-    "expm1",
-]
-
-#: ufuncs that only work on two dimensionless quantities
-UFUNCS_DIMENSIONLESS_TWOARGS = ["logaddexp", "logaddexp2", "arctan2", "hypot"]
-
-#: ufuncs that only work on integers and therefore never on quantities
-UFUNCS_INTEGERS = [
-    "bitwise_and",
-    "bitwise_or",
-    "bitwise_xor",
-    "invert",
-    "left_shift",
-    "right_shift",
-]
+#: The rules handled by the "dimensions change" branch of __array_ufunc__.
+_CHANGES_DIMENSIONS = {
+    Rule.SQRT,
+    Rule.POWER,
+    Rule.SQUARE,
+    Rule.DIVIDE,
+    Rule.RECIPROCAL,
+    Rule.MULTIPLY,
+}
 
 
 def wrap_function_keep_dimensions(func):
@@ -354,15 +265,16 @@ class Quantity(np.ndarray):
                 # need to check its dimensions
                 assert len(kwargs["out"]) == 1
                 kwargs["out"] = (np.asarray(kwargs["out"][0]),)
-        if uf.__name__ in (UFUNCS_LOGICAL + ["sign", "ones_like"]):
+        rule = RULES.get(uf)
+        if rule is Rule.UNITLESS_RESULT:
             # do not touch return value
             return uf_method(*[np.asarray(a) for a in inputs], **kwargs)
-        elif uf.__name__ in UFUNCS_PRESERVE_DIMENSIONS:
+        elif rule is Rule.PRESERVE:
             return _new_quantity(uf_method(*[np.asarray(a) for a in inputs], **kwargs), self.dim)
-        elif uf.__name__ in UFUNCS_CHANGE_DIMENSIONS + ["power"]:
-            if uf.__name__ == "sqrt":
+        elif rule in _CHANGES_DIMENSIONS:
+            if rule is Rule.SQRT:
                 dim = self.dim**0.5
-            elif uf.__name__ == "power":
+            elif rule is Rule.POWER:
                 fail_for_dimension_mismatch(
                     inputs[1],
                     error_message=(
@@ -375,13 +287,13 @@ class Quantity(np.ndarray):
                         "Only length-1 arrays can be used as an exponent for quantities."
                     )
                 dim = get_dimensions(inputs[0]) ** np.asarray(inputs[1])
-            elif uf.__name__ == "square":
+            elif rule is Rule.SQUARE:
                 dim = self.dim**2
-            elif uf.__name__ in ("divide", "true_divide", "floor_divide"):
+            elif rule is Rule.DIVIDE:
                 dim = get_dimensions(inputs[0]) / get_dimensions(inputs[1])
-            elif uf.__name__ == "reciprocal":
+            elif rule is Rule.RECIPROCAL:
                 dim = get_dimensions(inputs[0]) ** -1
-            elif uf.__name__ in ("multiply", "dot", "matmul"):
+            elif rule is Rule.MULTIPLY:
                 if method == "__call__":
                     dim = get_dimensions(inputs[0]) * get_dimensions(inputs[1])
                 else:
@@ -389,10 +301,10 @@ class Quantity(np.ndarray):
             else:
                 return NotImplemented
             return _new_quantity(uf_method(*[np.asarray(a) for a in inputs], **kwargs), dim)
-        elif uf.__name__ in UFUNCS_INTEGERS:
+        elif rule is Rule.INTEGER_ONLY:
             # Numpy should already raise a TypeError by itself
             raise TypeError(f"{uf.__name__} cannot be used on quantities.")
-        elif uf.__name__ in UFUNCS_MATCHING_DIMENSIONS + UFUNCS_COMPARISONS:
+        elif rule is Rule.MATCH or rule is Rule.COMPARE:
             # Ok if dimension of arguments match (for reductions, they always do)
             if method == "__call__":
                 fail_for_dimension_mismatch(
@@ -403,13 +315,13 @@ class Quantity(np.ndarray):
                     val1=inputs[0],
                     val2=inputs[1],
                 )
-            if uf.__name__ in UFUNCS_COMPARISONS:
+            if rule is Rule.COMPARE:
                 return uf_method(*[np.asarray(i) for i in inputs], **kwargs)
             else:
                 return _new_quantity(
                     uf_method(*[np.asarray(i) for i in inputs], **kwargs), self.dim
                 )
-        elif uf.__name__ in UFUNCS_DIMENSIONLESS:
+        elif rule is Rule.DIMENSIONLESS:
             # Ok if argument is dimensionless
             fail_for_dimension_mismatch(
                 inputs[0],
@@ -417,7 +329,7 @@ class Quantity(np.ndarray):
                 value=inputs[0],
             )
             return uf_method(np.asarray(inputs[0]), *inputs[1:], **kwargs)
-        elif uf.__name__ in UFUNCS_DIMENSIONLESS_TWOARGS:
+        elif rule is Rule.DIMENSIONLESS_BOTH:
             # Ok if both arguments are dimensionless
             fail_for_dimension_mismatch(
                 inputs[0],
