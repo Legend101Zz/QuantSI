@@ -66,6 +66,11 @@ from ._ufuncs import (
 )
 from ._unit import Unit as Unit
 from ._utils import _flatten as _flatten, _short_str as _short_str
+from ._wrappers import (
+    wrap_function_change_dimensions as wrap_function_change_dimensions,
+    wrap_function_dimensionless as wrap_function_dimensionless,
+    wrap_function_remove_dimensions as wrap_function_remove_dimensions,
+)
 
 __all__ = [
     "DimensionMismatchError",
