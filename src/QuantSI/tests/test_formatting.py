@@ -43,3 +43,29 @@ def test_python_code_evaluates_back():
     np.testing.assert_array_equal(
         np.asarray(eval(text, {"array": np.array, "mvolt": mvolt})), np.asarray(q)
     )
+
+
+@pytest.mark.parametrize(
+    ("value", "spec", "expected"),
+    [
+        (3 * mvolt, ".2f", "3.00 mV"),
+        (3 * mvolt, "", "3. mV"),
+        (0.025123456 * volt, ".3g", "25.1 mV"),
+        (np.array([1.0, 2.5]) * mvolt, ".1f", "[1.0 2.5] mV"),
+        (np.array([1.0, 2.5]) * mvolt, ".1e", "[1.0e+00 2.5e+00] mV"),
+        (3 * mvolt, ">8.1f", "     3.0 mV"),
+    ],
+)
+def test_format_specifications(value, spec, expected):
+    assert format(value, spec) == expected
+    assert f"{value:{spec}}" == expected
+
+
+def test_invalid_format_specification():
+    with pytest.raises(ValueError):
+        format(3 * mvolt, ".2q")
+
+
+def test_precision_and_spec_together_are_refused():
+    with pytest.raises(ValueError, match="not both"):
+        format_quantity(3 * mvolt, mvolt, precision=2, spec=".2f")

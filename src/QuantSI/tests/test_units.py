@@ -409,7 +409,10 @@ def test_format_quantity():
     # a format spec
     q = 0.5 * ms
     assert f"{q}" == f"{q!s}" == str(q)
-    assert f"{q:g}" == f"{float(q)}"
+    # A format specification applies to the number in the best unit, and the unit is
+    # kept. (It used to format the base-SI value and drop the unit: "0.0005".)
+    assert f"{q:g}" == "0.5 ms"
+    assert f"{float(q):g}" == "0.0005"
 
 
 @pytest.mark.parametrize(

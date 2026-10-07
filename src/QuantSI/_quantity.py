@@ -678,12 +678,12 @@ class Quantity(np.ndarray):
         return self.in_best_unit()
 
     def __format__(self, format_spec):
-        # Avoid that formatted strings like f"{q}" use floating point formatting for the
-        # quantity, i.e. discard the unit
+        """``f"{q:.2f}"`` formats the number(s) in the best unit and adds the unit."""
+        from ._formatting import format_quantity
+
         if format_spec == "":
             return str(self)
-        else:
-            return super().__format__(format_spec)
+        return format_quantity(self, self.get_best_unit(), spec=format_spec)
 
     #### Mathematic methods ####
     cumsum = wrap_function_keep_dimensions(np.ndarray.cumsum)

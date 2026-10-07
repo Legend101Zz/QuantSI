@@ -10,40 +10,43 @@ from ._dimension import fail_for_dimension_mismatch, is_dimensionless
 from ._unit import Unit
 
 
-def format_quantity(quantity, unit, precision=None, python_code=False):
+def format_quantity(quantity, unit, precision=None, python_code=False, spec=""):
     """Write ``quantity`` in ``unit`` (which must have the same dimensions).
 
     With ``python_code=False`` the text is for people (``'3. mV'``); with
     ``python_code=True`` it is an expression that evaluates back to the quantity
     (``'3. * mvolt'``). NumPy formats the numbers, following its print options;
-    ``precision`` overrides the print option of that name.
+    ``precision`` overrides the print option of that name. Alternatively, ``spec``
+    is a format specification (as in ``f"{x:.2f}"``) applied to each number.
     """
+    if spec and precision is not None:
+        raise ValueError("Give either a precision or a format specification, not both.")
     value = np.asarray(quantity / unit)
+    if spec:  # the specification decides the layout, including padding
+        if value.shape == ():
+            return _with_unit(format(value.item(), spec), quantity, unit, python_code)
+        text = np.array2string(value, formatter={"all": lambda x: format(x, spec)})
+        return _with_unit(text, quantity, unit, python_code)
     if value.shape == ():
         # A scalar is written as a one-element array without its brackets: NumPy
         # scalars ignore the print options, and 0-d arrays are written with the
         # scalar's repr in NumPy's legacy print mode (legacy="1.13", which Brian2's
         # tests use). One-element arrays follow the print options in every mode.
-        s = np.array2string(value.reshape(1), precision=precision)[1:-1].strip()
+        text = np.array2string(value.reshape(1), precision=precision)[1:-1]
     elif python_code:
-        s = np.array_repr(value, precision=precision)
+        text = np.array_repr(value, precision=precision)
     else:
-        s = np.array_str(value, precision=precision)
+        text = np.array_str(value, precision=precision)
+    return _with_unit(text.strip(), quantity, unit, python_code)
 
-    if not unit.is_dimensionless:
-        if isinstance(unit, Unit):
-            if python_code:
-                s += f" * {repr(unit)}"
-            else:
-                s += f" {str(unit)}"
-        else:
-            if python_code:
-                s += f" * {repr(unit.dim)}"
-            else:
-                s += f" {str(unit.dim)}"
-    elif python_code:  # Make a quantity without unit recognisable
-        return f"{type(quantity).__name__}({s.strip()})"
-    return s.strip()
+
+def _with_unit(text, quantity, unit, python_code):
+    """Append the unit to the text of the numbers (or mark a dimensionless value)."""
+    if unit.is_dimensionless:
+        # A value without unit, made recognisable in Python code.
+        return f"{type(quantity).__name__}({text})" if python_code else text
+    name = unit if isinstance(unit, Unit) else unit.dim
+    return f"{text} * {name!r}" if python_code else f"{text} {name!s}"
 
 
 def in_unit(x, u, precision=None):
