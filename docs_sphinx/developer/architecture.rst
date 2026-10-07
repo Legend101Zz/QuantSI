@@ -51,7 +51,10 @@ happens on that rare path.
 ``_unit``
     The ``Unit`` class.
 ``_formatting``
-    Turning quantities into text.
+    Turning quantities into text: ``format_quantity`` (``str``, ``repr``,
+    ``format``, ``in_unit``) and ``format_quantity_latex``.
+``_parsing``
+    Reading quantities from text (``parse_quantity``) without ``eval``.
 ``_decorators``
     ``check_units``.
 
