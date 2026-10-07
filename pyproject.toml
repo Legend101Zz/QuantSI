@@ -30,6 +30,7 @@ test = [
     "pytest-xdist>=1.22.3",
     "pdm-backend>=2.4.3",
     "pytest-cov>=6.1.1",
+    "pytest-benchmark>=5.1",
     "ruff>=0.16,<0.17",
     "pre-commit>=4.2.0",
 ]
@@ -55,7 +56,13 @@ write_template = "__version__ = '{}'"
 [tool.pytest.ini_options]
 minversion = "8.3"
 testpaths = ["src/QuantSI"]
-addopts = ["-ra", "--strict-markers", "--strict-config", "--doctest-modules"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--doctest-modules",
+    "--benchmark-disable",  # run each benchmark once, as a plain test
+]
 xfail_strict = true
 # Treat warnings as errors, so that deprecations show up early. A test that
 # expects a warning can allow it with @pytest.mark.filterwarnings.
