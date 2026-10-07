@@ -30,7 +30,7 @@ test = [
     "pytest-xdist>=1.22.3",
     "pdm-backend>=2.4.3",
     "pytest-cov>=6.1.1",
-    "ruff>=0.11.6",
+    "ruff>=0.16,<0.17",
     "pre-commit>=4.2.0",
 ]
 docs = [
@@ -58,6 +58,11 @@ addopts = "-ra"
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+extend-exclude = ["src/QuantSI/allunits.py"]  # generated file, not edited by hand
+
+[tool.ruff.lint]
+# List the rules ourselves, so that a new Ruff release can't change what CI checks.
+select = ["E4", "E7", "E9", "F", "I"]
 
 [tool.ruff.format]
 docstring-code-format = true

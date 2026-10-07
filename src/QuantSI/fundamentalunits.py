@@ -24,8 +24,6 @@ from warnings import warn
 
 import numpy as np
 from numpy.exceptions import VisibleDeprecationWarning
-
-
 from sympy import latex
 
 __all__ = [
