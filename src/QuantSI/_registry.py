@@ -41,11 +41,22 @@ class UnitRegistry:
     def __init__(self):
         self.units = collections.OrderedDict()
         self.units_for_dimensions = collections.defaultdict(dict)
+        #: dim -> (scale of each matching unit as an array, the units), built on
+        #: first use and dropped when a unit of that dimension is added.
+        self._tables = {}
 
     def add(self, u):
         """Add a unit to the registry"""
         self.units[repr(u)] = u
         self.units_for_dimensions[u.dim][float(u)] = u
+        self._tables.pop(u.dim, None)
+
+    def _table(self, dim):
+        table = self._tables.get(dim)
+        if table is None:
+            matching = self.units_for_dimensions[dim]
+            table = self._tables[dim] = (np.asarray(list(matching)), list(matching.values()))
+        return table
 
     def __getitem__(self, x):
         """Returns the best unit for quantity x
@@ -63,7 +74,15 @@ class UnitRegistry:
         if len(matching) == 0:
             raise KeyError("Unit not found in registry.")
 
-        matching_values = np.asarray(list(matching.keys()))
+        matching_values, matching_units = self._table(x.dim)
+        if x.size == 1:  # most often, a single value (str(3 * mV))
+            value = abs(np.asarray(x).item())
+            if value == 0 or value != value:  # zero or NaN: any unit will do
+                return matching[1.0]
+            # The same arithmetic as below, for one value.
+            deviations = (np.log10(value / matching_values) - 1) ** 2
+            return matching_units[deviations.argmin()]
+
         print_opts = np.get_printoptions()
         edgeitems, threshold = print_opts["edgeitems"], print_opts["threshold"]
         if x.size > threshold:
@@ -90,7 +109,7 @@ class UnitRegistry:
             return matching[1.0]  # all zeros, use the base unit
 
         deviations = np.nansum((np.log10(floatreps) - 1) ** 2, axis=0)
-        return list(matching.values())[deviations.argmin()]
+        return matching_units[deviations.argmin()]
 
 
 def register_new_unit(u):
