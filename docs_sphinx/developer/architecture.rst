@@ -27,9 +27,10 @@ Private modules
 ---------------
 
 They are listed from the bottom up: at the top of a file, a module may only
-import the modules listed *above* it. When a module needs one listed below it,
-for example to build an error message, it imports it inside the function that
-needs it, so the import only happens on that rare path.
+import the modules listed *above* it (``tests/test_architecture.py`` checks
+this). When a module needs one listed below it, for example to build an error
+message, it imports it inside the function that needs it, so the import only
+happens on that rare path.
 
 ``_utils``
     Small helpers (``set_module``, list flattening, short array strings).
