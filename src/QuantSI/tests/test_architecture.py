@@ -25,6 +25,7 @@ LAYERS = [
     "_quantity",
     "_unit",
     "_formatting",
+    "_parsing",
     "_decorators",
 ]
 

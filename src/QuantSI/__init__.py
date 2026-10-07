@@ -202,6 +202,9 @@ from .fundamentalunits import (
     get_unit,
 )
 
+from ._errors import QuantityParseError
+from ._parsing import parse_quantity
+
 from .stdunits import (
     mV,
     mA,
@@ -413,6 +416,8 @@ __all__ = [
     # from fundamentalunits
     "DimensionMismatchError",
     "QuantSIWarning",
+    "QuantityParseError",
+    "parse_quantity",
     "get_or_create_dimension",
     "get_dimensions",
     "is_dimensionless",
