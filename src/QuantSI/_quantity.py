@@ -17,9 +17,9 @@ from ._array_functions import (
     HANDLED,
     SUBCLASS_SAFE,
     UNIT_FREE,
-    UNSUPPORTED,
     strip_units,
     unsupported_message,
+    unsupported_reason,
 )
 from ._dimension import (
     DIMENSIONLESS,
@@ -299,8 +299,9 @@ class Quantity(np.ndarray):
             return handler(func, _new_quantity, *args, **kwargs)
         if func in UNIT_FREE:
             return func(*strip_units(args), **strip_units(kwargs))
-        if func in UNSUPPORTED:
-            raise TypeError(unsupported_message(func))
+        reason = unsupported_reason(func)
+        if reason is not None:
+            raise TypeError(unsupported_message(func, reason))
         # Not reviewed yet: NumPy's own implementation, as before.
         return super().__array_function__(func, types, args, kwargs)
 

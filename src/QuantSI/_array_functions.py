@@ -60,11 +60,25 @@ def strip_units(obj):
     return obj
 
 
-def unsupported_message(function):
+#: Whole modules of NumPy functions that do not apply to quantities. (Listing
+#: them by name would mean importing them, and numpy.lib.recfunctions imports the
+#: whole of numpy.ma.)
+UNSUPPORTED_MODULES = {"numpy.lib.recfunctions": "it works on structured (record) arrays"}
+
+
+def unsupported_reason(function):
+    """Why ``function`` is refused for quantities, or None if it is not."""
+    reason = UNSUPPORTED.get(function)
+    if reason is None:
+        reason = UNSUPPORTED_MODULES.get(getattr(function, "__module__", None))
+    return reason
+
+
+def unsupported_message(function, reason):
     return (
-        f"numpy.{function.__name__} is not supported for quantities: "
-        f"{UNSUPPORTED[function]}. Apply it to np.asarray(x) (the values in base SI "
-        "units) if dropping the units is intended."
+        f"numpy.{function.__name__} is not supported for quantities: {reason}. "
+        "Apply it to np.asarray(x) (the values in base SI units) if dropping the "
+        "units is intended."
     )
 
 
@@ -678,3 +692,49 @@ def _norm(function, as_quantity, /, x, *args, **kwargs):
     if isinstance(order, (int, float)) and order == 0:
         return result  # the "0-norm" counts the non-zero elements
     return as_quantity(result, _dim(x))
+
+
+# ------------------------------------------------------------------------------
+# HANDLED: functions of dimensionless numbers
+# ------------------------------------------------------------------------------
+
+
+@implements(
+    np.i0,
+    np.sinc,
+    np.unwrap,
+    np.lib.scimath.arccos,
+    np.lib.scimath.arcsin,
+    np.lib.scimath.arctanh,
+    np.lib.scimath.log,
+    np.lib.scimath.log10,
+    np.lib.scimath.log2,
+    np.lib.scimath.logn,
+)
+def _dimensionless(function, as_quantity, /, *args, **kwargs):
+    for value in (*args, *kwargs.values()):
+        if hasattr(value, "dim"):
+            fail_for_dimension_mismatch(
+                value,
+                error_message=f"numpy.{function.__name__} needs dimensionless arguments, got {{value}}",
+                value=value,
+            )
+    return function(*strip_units(args), **strip_units(kwargs))
+
+
+@implements(np.lib.scimath.sqrt)
+def _scimath_sqrt(function, as_quantity, /, x):
+    return as_quantity(np.lib.scimath.sqrt(np.asarray(x)), _dim(x) ** 0.5)
+
+
+@implements(np.lib.scimath.power)
+def _scimath_power(function, as_quantity, /, x, p):
+    fail_for_dimension_mismatch(
+        p,
+        error_message="The exponent for a power operation has to be dimensionless but was {value}",
+        value=p,
+    )
+    if np.asarray(p).size != 1:
+        raise TypeError("Only length-1 arrays can be used as an exponent for quantities.")
+    result = np.lib.scimath.power(np.asarray(x), np.asarray(p))
+    return as_quantity(result, _dim(x) ** np.asarray(p))

@@ -450,6 +450,40 @@ CASES = {
         ("count", lambda ns: np.linalg.vector_norm(ns.m, ord=0), "plain"),
     ],
     "linalg.matrix_norm": [("2d", lambda ns: np.linalg.matrix_norm(ns.M), "m")],
+    # ---- HANDLED: functions of dimensionless numbers ------------------------------------
+    "i0": [("with dimensions", lambda ns: np.i0(ns.m), "DimensionMismatchError")],
+    "sinc": [("with dimensions", lambda ns: np.sinc(ns.m), "DimensionMismatchError")],
+    "unwrap": [("with dimensions", lambda ns: np.unwrap(ns.m), "DimensionMismatchError")],
+    "lib.scimath.arccos": [
+        ("with dimensions", lambda ns: np.lib.scimath.arccos(ns.m), "DimensionMismatchError")
+    ],
+    "lib.scimath.arcsin": [
+        ("with dimensions", lambda ns: np.lib.scimath.arcsin(ns.m), "DimensionMismatchError")
+    ],
+    "lib.scimath.arctanh": [
+        ("with dimensions", lambda ns: np.lib.scimath.arctanh(ns.m), "DimensionMismatchError")
+    ],
+    "lib.scimath.log": [
+        ("with dimensions", lambda ns: np.lib.scimath.log(ns.m), "DimensionMismatchError")
+    ],
+    "lib.scimath.log10": [
+        ("with dimensions", lambda ns: np.lib.scimath.log10(ns.m), "DimensionMismatchError")
+    ],
+    "lib.scimath.log2": [
+        ("with dimensions", lambda ns: np.lib.scimath.log2(ns.m), "DimensionMismatchError")
+    ],
+    "lib.scimath.logn": [
+        ("with dimensions", lambda ns: np.lib.scimath.logn(2, ns.m), "DimensionMismatchError")
+    ],
+    "lib.scimath.sqrt": [("1d", lambda ns: np.lib.scimath.sqrt(ns.m), "m^0.5")],
+    "lib.scimath.power": [
+        ("1d", lambda ns: np.lib.scimath.power(ns.m, 2), "m2"),
+        (
+            "exponent with dimensions",
+            lambda ns: np.lib.scimath.power(ns.m, ns.m),
+            "DimensionMismatchError",
+        ),
+    ],
     # ---- UNIT_FREE ------------------------------------------------------------------
     "argmax": [
         ("1d", lambda ns: np.argmax(ns.m), "plain"),
@@ -627,3 +661,15 @@ def test_buckets_do_not_overlap():
 def test_quantities_of_different_kinds_are_never_equal():
     assert not np.array_equal(np.ones(3) * metre, np.ones(3) * second)
     assert not np.array_equiv(np.ones(3) * metre, np.ones(3) * second)
+
+
+def test_dimensionless_functions_accept_dimensionless_quantities():
+    x = Quantity([0.1, 0.2])  # an explicitly constructed, dimensionless Quantity
+    np.testing.assert_allclose(np.sinc(x), np.sinc([0.1, 0.2]))
+
+
+def test_record_array_functions_are_refused():
+    from numpy.lib import recfunctions
+
+    with pytest.raises(TypeError, match="structured"):
+        recfunctions.structured_to_unstructured(np.ones(3) * metre)
