@@ -1,5 +1,10 @@
 """
-Defines physical units and quantities
+Defines physical units and quantities.
+
+This module only re-exports: the code lives in QuantSI's private modules (see
+the "How the code is organised" developer page). It keeps the old names because
+old pickles and Brian2's ``brian2.units.fundamentalunits`` depend on them, so
+please don't add new code here.
 
 =====================  ========  ======
 Quantity               Unit      Symbol
