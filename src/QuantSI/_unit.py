@@ -304,10 +304,8 @@ class Unit(Quantity):
                 )
                 return u
             else:
-                return ufunc(
-                    *[Quantity(i, dim=getattr(i, "dim", DIMENSIONLESS)) for i in inputs],
-                    **kwargs,
-                )
+                # Not a unit-by-unit operation: the result is an ordinary Quantity.
+                return super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
         elif ufunc.__name__ == "divide":
             first, second = inputs
             if isinstance(first, Unit) and isinstance(second, Unit):
@@ -341,10 +339,8 @@ class Unit(Quantity):
             elif is_dimensionless(first) and np.array(first).shape == () and first == 1:
                 return np.reciprocal(second)
             else:
-                return ufunc(
-                    *[Quantity(i, dim=getattr(i, "dim", DIMENSIONLESS)) for i in inputs],
-                    **kwargs,
-                )
+                # Not a unit-by-unit operation: the result is an ordinary Quantity.
+                return super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
         elif ufunc.__name__ == "power":
             first, second = inputs
             if is_scalar_type(second):

@@ -28,7 +28,7 @@ CASES = [
     ("array_index", "A[10]", "a[10]", 19),
     ("scalar_add", "X + Y", "x + y", 12),
     ("scalar_multiply", "X * Y", "x * y", 14),
-    ("number_times_unit", "3 * mvolt", "3 * x0", 23),
+    ("number_times_unit", "3 * mvolt", "3 * x0", 12),
     ("str_scalar", "str(X)", "str(x)", 175),
 ]
 
