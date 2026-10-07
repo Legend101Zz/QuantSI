@@ -399,7 +399,7 @@ def get_dimensions(obj):
             np.bool_,
         ] or isinstance(obj, (numbers.Number, np.number, np.ndarray)):
             return DIMENSIONLESS
-        from .fundamentalunits import Quantity
+        from ._quantity import Quantity
 
         try:
             return Quantity(obj).dim
@@ -511,7 +511,7 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None, **error_qua
             error_message = error_message.format(**error_quantities)
         # If we are comparing an object to a specific unit, we don't want to
         # restate this unit (it is probably mentioned in the text already)
-        from .fundamentalunits import Unit
+        from ._unit import Unit
 
         if obj2 is None or isinstance(obj2, (Dimension, Unit)):
             raise DimensionMismatchError(error_message, dim1)

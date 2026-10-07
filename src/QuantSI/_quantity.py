@@ -554,7 +554,7 @@ class Quantity(np.ndarray):
         in_unit
         """
 
-        from .fundamentalunits import Unit
+        from ._unit import Unit
 
         fail_for_dimension_mismatch(self, u, 'Non-matching unit for method "in_unit"')
 
@@ -601,7 +601,7 @@ class Quantity(np.ndarray):
             u : `Quantity` or `Unit`
                 The best-fitting unit for the quantity `x`.
         """
-        from .fundamentalunits import Unit
+        from ._unit import Unit
 
         if self.is_dimensionless:
             return Unit(1)
@@ -769,7 +769,7 @@ class Quantity(np.ndarray):
         ``threshold`` value is 1000, this function hence applies 10). Note that the
         ``max_line_width`` print option is ignored.
         """
-        from .fundamentalunits import Unit
+        from ._unit import Unit
 
         best_unit = self.get_best_unit()
         if isinstance(best_unit, Unit):

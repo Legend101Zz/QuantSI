@@ -135,7 +135,7 @@ def get_unit(d):
         A registered unscaled `Unit` for the dimensions ``d``, or a new `Unit`
         if no unit was found.
     """
-    from .fundamentalunits import Unit
+    from ._unit import Unit
 
     for unit_register in [
         standard_unit_register,
