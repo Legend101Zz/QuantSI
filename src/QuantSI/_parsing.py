@@ -10,14 +10,22 @@ subscript, a comprehension, ...) is refused before anything is evaluated, so
 nothing in the text is ever executed.
 """
 
+from __future__ import annotations
+
 import ast
 import difflib
 import functools
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 from ._dimension import get_dimensions
 from ._errors import QuantityParseError
+
+if TYPE_CHECKING:
+    from ._dimension import Dimension
+    from ._quantity import Quantity
 
 MAX_LENGTH = 500  #: characters
 MAX_NODES = 200  #: syntax-tree nodes
@@ -39,7 +47,9 @@ def default_namespace():
     return names
 
 
-def parse_quantity(text, namespace=None):
+def parse_quantity(
+    text: str, namespace: Mapping[str, Any] | None = None
+) -> Quantity | np.ndarray | float:
     """Read a quantity, written as an expression of numbers and units, from text.
 
     >>> from QuantSI import parse_quantity
@@ -72,7 +82,7 @@ def parse_quantity(text, namespace=None):
     return _evaluate(tree.body, names)
 
 
-def parse_dimensions(text, namespace=None):
+def parse_dimensions(text: str, namespace: Mapping[str, Any] | None = None) -> Dimension:
     """The dimensions of a quantity written as text, as the interned `Dimension`.
 
     >>> from QuantSI import parse_dimensions

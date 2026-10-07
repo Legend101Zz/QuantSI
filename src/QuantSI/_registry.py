@@ -6,12 +6,18 @@ this order: the standard units, units registered by the user, and extra
 rather than ``0.003 V``.
 """
 
+from __future__ import annotations
+
 import collections
 import itertools
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from ._dimension import DIMENSIONLESS
+from ._dimension import DIMENSIONLESS, Dimension
+
+if TYPE_CHECKING:
+    from ._unit import Unit
 
 
 class UnitRegistry:
@@ -112,7 +118,7 @@ class UnitRegistry:
         return matching_units[deviations.argmin()]
 
 
-def register_new_unit(u):
+def register_new_unit(u: Unit) -> None:
     """Register a new unit for automatic displaying of quantities
 
     Parameters
@@ -140,7 +146,7 @@ additional_unit_register = UnitRegistry()
 user_unit_register = UnitRegistry()
 
 
-def get_unit(d):
+def get_unit(d: Dimension) -> Unit:
     """
     Find an unscaled unit (e.g. `volt` but not `mvolt`) for a `Dimension`.
 
@@ -167,7 +173,7 @@ def get_unit(d):
     return Unit(1.0, dim=d)
 
 
-def get_unit_for_display(d):
+def get_unit_for_display(d: Any) -> str:
     """
     Return a string representation of an appropriate unscaled unit or ``'1'``
     for a dimensionless quantity.

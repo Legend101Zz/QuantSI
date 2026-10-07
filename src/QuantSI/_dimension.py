@@ -6,7 +6,10 @@ only one `Dimension` object for each combination of exponents, so checking
 whether two things have the same dimensions is just ``dim1 is dim2``.
 """
 
+from __future__ import annotations
+
 import numbers
+from typing import Any
 
 import numpy as np
 
@@ -224,7 +227,7 @@ class Dimension:
     #
     # Every multiplication or division of quantities multiplies or divides their
     # dimensions, so the results are cached (see _remember below).
-    def __mul__(self, value):
+    def __mul__(self, value: Dimension) -> Dimension:
         key = (id(self), id(value))
         entry = _products.get(key)
         if entry is None:
@@ -232,7 +235,7 @@ class Dimension:
             return _remember(_products, key, (self, value, result))
         return entry[-1]
 
-    def __div__(self, value):
+    def __div__(self, value: Dimension) -> Dimension:
         key = (id(self), id(value))
         entry = _quotients.get(key)
         if entry is None:
@@ -240,10 +243,10 @@ class Dimension:
             return _remember(_quotients, key, (self, value, result))
         return entry[-1]
 
-    def __truediv__(self, value):
+    def __truediv__(self, value: Dimension) -> Dimension:
         return self.__div__(value)
 
-    def __pow__(self, value):
+    def __pow__(self, value: float | np.ndarray) -> Dimension:
         value = np.asarray(value)
         if value.size > 1:
             raise TypeError("Too many exponents")
@@ -254,16 +257,16 @@ class Dimension:
             return _remember(_powers, key, (self, result))
         return entry[-1]
 
-    def __imul__(self, value):
+    def __imul__(self, value):  # type: ignore[misc]  # dimensions are immutable
         raise TypeError("Dimension object is immutable")
 
     def __ifloordiv__(self, value):
         raise TypeError("Dimension object is immutable")
 
-    def __itruediv__(self, value):
+    def __itruediv__(self, value):  # type: ignore[misc]  # dimensions are immutable
         raise TypeError("Dimension object is immutable")
 
-    def __ipow__(self, value):
+    def __ipow__(self, value):  # type: ignore[misc]  # dimensions are immutable
         raise TypeError("Dimension object is immutable")
 
     #### COMPARISON ####
@@ -308,9 +311,9 @@ _dimensions = {(0, 0, 0, 0, 0, 0, 0): DIMENSIONLESS}
 #: unique while its object is alive, so every entry also holds the operands
 #: themselves: while the entry exists, no other object can get the same id.
 #: (Interned dimensions live for the whole process anyway.)
-_products = {}
-_quotients = {}
-_powers = {}
+_products: dict[tuple[int, int], tuple] = {}
+_quotients: dict[tuple[int, int], tuple] = {}
+_powers: dict[tuple[int, float], tuple] = {}
 _MAX_CACHE_ENTRIES = 4096  # per cache; beyond that, results are computed every time
 
 
@@ -322,7 +325,7 @@ def _remember(cache, key, entry):
 
 
 @set_module("QuantSI.fundamentalunits")
-def get_or_create_dimension(*args, **kwds):
+def get_or_create_dimension(*args, **kwds) -> Dimension:
     """
     Create a new Dimension object or get a reference to an existing one.
     This function takes care of only creating new objects if they were not
@@ -385,7 +388,7 @@ def get_or_create_dimension(*args, **kwds):
         return new_dim
 
 
-def is_scalar_type(obj):
+def is_scalar_type(obj: Any) -> bool:
     """
     Tells you if the object is a 1d number type.
 
@@ -406,7 +409,7 @@ def is_scalar_type(obj):
         return np.isscalar(obj) and not isinstance(obj, str)
 
 
-def get_dimensions(obj):
+def get_dimensions(obj: Any) -> Dimension:
     """
     Return the dimensions of any object that has them.
 
@@ -449,7 +452,7 @@ def get_dimensions(obj):
             raise TypeError(f"Object of type {type(obj)} does not have dimensions")
 
 
-def is_dimensionless(obj):
+def is_dimensionless(obj: Any) -> bool:
     """
     Test if a value is dimensionless or not.
 
@@ -466,7 +469,7 @@ def is_dimensionless(obj):
     return get_dimensions(obj) is DIMENSIONLESS
 
 
-def have_same_dimensions(obj1, obj2):
+def have_same_dimensions(obj1: Any, obj2: Any) -> bool:
     """Test if two values have the same dimensions.
 
     Parameters
@@ -490,7 +493,12 @@ def have_same_dimensions(obj1, obj2):
     return (dim1 is dim2) or (dim1 == dim2) or dim1 is None or dim2 is None
 
 
-def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None, **error_quantities):
+def fail_for_dimension_mismatch(
+    obj1: Any,
+    obj2: Any = None,
+    error_message: str | None = None,
+    **error_quantities: Any,
+) -> tuple[Dimension, Dimension]:
     """
     Compare the dimensions of two objects.
 

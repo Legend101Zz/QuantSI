@@ -24,6 +24,9 @@ jobs:
     - name: Run Ruff
       run: pdm run ruff check --output-format=github .
 
+    - name: Check types
+      run: pdm run mypy
+
     - name: Run tests
       run: |
         pdm run -v pytest --cov=QuantSI --cov-report lcov

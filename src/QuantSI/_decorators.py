@@ -6,7 +6,11 @@ information on the function it wraps (``_arg_units``, ``_arg_names``,
 Brian2's code generation reads these attributes, so don't rename them.
 """
 
+from __future__ import annotations
+
 import functools
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 import numpy as np
 
@@ -15,8 +19,10 @@ from ._errors import DimensionMismatchError
 from ._quantity import Quantity
 from ._registry import get_unit_for_display
 
+_Function = TypeVar("_Function", bound=Callable[..., Any])
 
-def check_units(**au):
+
+def check_units(**au: object) -> Callable[[_Function], _Function]:
     """Decorator to check units of arguments passed to a function
 
     Examples
@@ -122,7 +128,7 @@ def check_units(**au):
     ``True`` or ``False`` value.
     """
 
-    def do_check_units(f):
+    def do_check_units(f: _Function) -> _Function:
         # Everything that depends only on f and on the decorator's arguments is
         # worked out once, here, instead of on every call.
         n_positional = f.__code__.co_argcount
@@ -229,39 +235,40 @@ def check_units(**au):
                     raise DimensionMismatchError(error_message, get_dimensions(result))
             return result
 
-        new_f._orig_func = f
-        new_f.__doc__ = f.__doc__
-        new_f.__name__ = f.__name__
+        wrapper: Any = new_f  # carries the metadata attributes below
+        wrapper._orig_func = f
+        wrapper.__doc__ = f.__doc__
+        wrapper.__name__ = f.__name__
         # store the information in the function, necessary when using the
         # function in expressions or equations
         if hasattr(f, "_orig_arg_names"):
             arg_names = f._orig_arg_names
         else:
             arg_names = f.__code__.co_varnames[: f.__code__.co_argcount]
-        new_f._arg_names = arg_names
-        new_f._arg_units = [au.get(name, None) for name in arg_names]
+        wrapper._arg_names = arg_names
+        wrapper._arg_units = [au.get(name, None) for name in arg_names]
         return_unit = au.get("result", None)
         if return_unit is None:
-            new_f._return_unit = None
+            wrapper._return_unit = None
         else:
-            new_f._return_unit = return_unit
+            wrapper._return_unit = return_unit
         if return_unit is bool:
-            new_f._returns_bool = True
+            wrapper._returns_bool = True
         else:
-            new_f._returns_bool = False
-        new_f._orig_arg_names = arg_names
+            wrapper._returns_bool = False
+        wrapper._orig_arg_names = arg_names
 
         # copy any annotation attributes
         if hasattr(f, "_annotation_attributes"):
             for attrname in f._annotation_attributes:
-                setattr(new_f, attrname, getattr(f, attrname))
-        new_f._annotation_attributes = getattr(f, "_annotation_attributes", []) + [
+                setattr(wrapper, attrname, getattr(f, attrname))
+        wrapper._annotation_attributes = getattr(f, "_annotation_attributes", []) + [
             "_arg_units",
             "_arg_names",
             "_return_unit",
             "_orig_func",
             "_returns_bool",
         ]
-        return new_f
+        return wrapper
 
     return do_check_units

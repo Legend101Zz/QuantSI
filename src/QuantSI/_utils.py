@@ -2,11 +2,15 @@
 
 import math
 import numbers
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 import numpy as np
 
+_Function = TypeVar("_Function", bound=Callable[..., Any])
 
-def set_module(module):
+
+def set_module(module: str) -> Callable[[_Function], _Function]:
     """Decorator that makes a function report ``module`` as its ``__module__``.
 
     pickle saves a function as its ``__module__`` and ``__qualname__``, and imports
@@ -16,11 +20,26 @@ def set_module(module):
     read new pickles. NumPy does the same (``numpy._utils.set_module``).
     """
 
-    def decorator(func):
+    def decorator(func: _Function) -> _Function:
         func.__module__ = module
         return func
 
     return decorator
+
+
+def numpy_docstring(numpy_function: Callable[..., Any]) -> Callable[[_Function], _Function]:
+    """Decorator: give a method the docstring of the NumPy function it overrides.
+
+    The docstring's examples are about NumPy arrays, so the method is also marked
+    ``_do_not_run_doctests`` (the test suite, like Brian2's, skips its doctests).
+    """
+
+    def decorate(method: _Function) -> _Function:
+        method.__doc__ = numpy_function.__doc__
+        setattr(method, "_do_not_run_doctests", True)  # for tools, not type checkers
+        return method
+
+    return decorate
 
 
 def _flatten(iterable):

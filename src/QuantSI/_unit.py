@@ -1,8 +1,10 @@
 """The Unit class: a named, scaled quantity such as ``mvolt``."""
 
+from __future__ import annotations
+
 import numpy as np
 
-from ._dimension import DIMENSIONLESS, _siprefixes, is_dimensionless, is_scalar_type
+from ._dimension import DIMENSIONLESS, Dimension, _siprefixes, is_dimensionless, is_scalar_type
 from ._quantity import Quantity
 from ._registry import register_new_unit
 from ._utils import _latex_number
@@ -178,7 +180,9 @@ class Unit(Quantity):
             register_new_unit(self)
 
     @staticmethod
-    def create(dim, name, dispname, latexname=None, scale=0):
+    def create(
+        dim: Dimension, name: str, dispname: str, latexname: str | None = None, scale: int = 0
+    ) -> Unit:
         """
         Create a new named unit.
 
@@ -220,7 +224,7 @@ class Unit(Quantity):
         return u
 
     @staticmethod
-    def create_scaled_unit(baseunit, scalefactor):
+    def create_scaled_unit(baseunit: Unit, scalefactor: str) -> Unit:
         """
         Create a scaled unit from a base unit.
 
@@ -441,25 +445,25 @@ class Unit(Quantity):
             # Treat the unit as a Quantity (e.g. meter + meter should not fail but give 2*meter)
             return super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
 
-    def __iadd__(self, other):
+    def __iadd__(self, other):  # type: ignore[misc]  # units are immutable
         raise TypeError("Units cannot be modified in-place")
 
-    def __isub__(self, other):
+    def __isub__(self, other):  # type: ignore[misc]  # units are immutable
         raise TypeError("Units cannot be modified in-place")
 
-    def __imul__(self, other):
+    def __imul__(self, other):  # type: ignore[misc]  # units are immutable
         raise TypeError("Units cannot be modified in-place")
 
-    def __itruediv__(self, other):
+    def __itruediv__(self, other):  # type: ignore[misc]  # units are immutable
         raise TypeError("Units cannot be modified in-place")
 
-    def __ifloordiv__(self, other):
+    def __ifloordiv__(self, other):  # type: ignore[misc]  # units are immutable
         raise TypeError("Units cannot be modified in-place")
 
-    def __imod__(self, other):
+    def __imod__(self, other):  # type: ignore[misc]  # units are immutable
         raise TypeError("Units cannot be modified in-place")
 
-    def __ipow__(self, other, modulo=None):
+    def __ipow__(self, other, modulo=None):  # type: ignore[misc]  # units are immutable
         raise TypeError("Units cannot be modified in-place")
 
     def __eq__(self, other):

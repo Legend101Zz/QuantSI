@@ -73,3 +73,8 @@ Rules that keep the package correct
 * **Metadata names are an interface.** ``check_units`` sets ``_arg_units``,
   ``_return_unit`` and a few more attributes on the functions it wraps, and
   Brian2's code generation reads them.
+* **Types.** QuantSI ships ``py.typed``. Its functions and classes are annotated
+  and checked with mypy in CI, together with ``tests/typing_examples.py``, which
+  states the types users see. The results of arithmetic are typed as NumPy
+  arrays: NumPy's type stubs type every operator that way, and an
+  ``np.ndarray`` subclass cannot change that without overriding each operator.

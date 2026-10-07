@@ -4,15 +4,25 @@
 ``repr``, ``format``, ``in_unit`` and ``in_best_unit`` all go through it.
 """
 
+from __future__ import annotations
+
 import sys
+from typing import Any
 
 import numpy as np
 
 from ._dimension import fail_for_dimension_mismatch, is_dimensionless
+from ._quantity import Quantity
 from ._unit import Unit
 
 
-def format_quantity(quantity, unit, precision=None, python_code=False, spec=""):
+def format_quantity(
+    quantity: Quantity,
+    unit: Quantity,
+    precision: int | None = None,
+    python_code: bool = False,
+    spec: str = "",
+) -> str:
     """Write ``quantity`` in ``unit`` (which must have the same dimensions).
 
     With ``python_code=False`` the text is for people (``'3. mV'``); with
@@ -42,7 +52,7 @@ def format_quantity(quantity, unit, precision=None, python_code=False, spec=""):
     return _with_unit(text.strip(), quantity, unit, python_code)
 
 
-def _with_unit(text, quantity, unit, python_code):
+def _with_unit(text: str, quantity: Quantity, unit: Quantity, python_code: bool) -> str:
     """Append the unit to the text of the numbers (or mark a dimensionless value)."""
     if unit.is_dimensionless:
         # A value without unit, made recognisable in Python code.
@@ -51,7 +61,7 @@ def _with_unit(text, quantity, unit, python_code):
     return f"{text} * {name!r}" if python_code else f"{text} {name!s}"
 
 
-def format_quantity_latex(quantity):
+def format_quantity_latex(quantity: Quantity) -> str:
     """Write a scalar, 1-d or 2-d quantity as LaTeX, in its best unit.
 
     Used as the "rich representation" in Jupyter notebooks. The numbers are
@@ -67,6 +77,7 @@ def format_quantity_latex(quantity):
         best_unit_latex = best_unit.dimensions._latex()
     unitless = np.asarray(quantity / best_unit)
     threshold = np.get_printoptions()["threshold"] // 100
+    number: float | str
     if unitless.ndim == 0:
         number = float(unitless)
     elif unitless.ndim == 1:
@@ -107,7 +118,7 @@ def format_quantity_latex(quantity):
     return f"{number}\\,{best_unit_latex}"
 
 
-def in_unit(x, u, precision=None):
+def in_unit(x: Any, u: Quantity, precision: int | None = None) -> str:
     """
     Display a value in a certain unit with a given precision.
 
@@ -155,7 +166,7 @@ def in_unit(x, u, precision=None):
         return x.in_unit(u, precision=precision)
 
 
-def in_best_unit(x, precision=None):
+def in_best_unit(x: Any, precision: int | None = None) -> str:
     """
     Represent the value in the "best" unit.
 

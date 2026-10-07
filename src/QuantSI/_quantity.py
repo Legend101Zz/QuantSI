@@ -5,6 +5,8 @@ Values are always stored in base SI units, and ``.dim`` points to the shared
 that's where dimensions are checked and combined.
 """
 
+from __future__ import annotations
+
 import numbers
 import operator
 from warnings import warn
@@ -29,9 +31,14 @@ from ._dimension import (
     is_scalar_type,
 )
 from ._errors import DimensionMismatchError, QuantSIWarning
-from ._registry import additional_unit_register, standard_unit_register, user_unit_register
+from ._registry import (
+    UnitRegistry,
+    additional_unit_register,
+    standard_unit_register,
+    user_unit_register,
+)
 from ._ufuncs import HANDLERS, check_method
-from ._utils import _flatten, set_module
+from ._utils import _flatten, numpy_docstring, set_module
 
 
 def wrap_function_keep_dimensions(func):
@@ -58,7 +65,7 @@ def wrap_function_keep_dimensions(func):
 
 
 @set_module("QuantSI.fundamentalunits")
-def quantity_with_dimensions(floatval, dims):
+def quantity_with_dimensions(floatval: object, dims: Dimension) -> Quantity:
     """
     Create a new `Quantity` with the given dimensions. Calls
     `get_or_create_dimensions` with the dimension tuple of the `dims`
@@ -179,6 +186,7 @@ class Quantity(np.ndarray):
     """
 
     __slots__ = ["dim"]
+    dim: Dimension  #: the physical dimensions (shared, interned)
 
     __array_priority__ = 1000
 
@@ -374,7 +382,7 @@ class Quantity(np.ndarray):
 
     #### METHODS ####
 
-    def has_same_dimensions(self, other):
+    def has_same_dimensions(self, other: object) -> bool:
         """
         Return whether this object has the same dimensions as another.
 
@@ -391,7 +399,7 @@ class Quantity(np.ndarray):
         other_dim = get_dimensions(other)
         return (self.dim is other_dim) or (self.dim == other_dim)
 
-    def in_unit(self, u, precision=None, python_code=False):
+    def in_unit(self, u: Quantity, precision: int | None = None, python_code: bool = False) -> str:
         """
         Represent the quantity in a given unit. If `python_code` is ``True``,
         this will return valid python code, i.e. a string like ``5.0 * um ** 2``
@@ -435,7 +443,7 @@ class Quantity(np.ndarray):
         fail_for_dimension_mismatch(self, u, 'Non-matching unit for method "in_unit"')
         return format_quantity(self, u, precision=precision, python_code=python_code)
 
-    def get_best_unit(self, *regs):
+    def get_best_unit(self, *regs: UnitRegistry) -> Quantity:
         """
         Return the best unit for this `Quantity`.
 
@@ -473,7 +481,9 @@ class Quantity(np.ndarray):
         )
         return self.get_best_unit(*regs)
 
-    def in_best_unit(self, precision=None, python_code=False, *regs):
+    def in_best_unit(
+        self, precision: int | None = None, python_code: bool = False, *regs: UnitRegistry
+    ) -> str:
         """
         Represent the quantity in the "best" unit.
 
@@ -653,20 +663,17 @@ class Quantity(np.ndarray):
         """Like `numpy.ndarray.argpartition`; returns plain indices."""
         return np.asarray(self).argpartition(*args, **kwds)
 
+    @numpy_docstring(np.ndarray.fill)
     def fill(self, values):  # pylint: disable=C0111
         fail_for_dimension_mismatch(self, values, "fill")
         super().fill(values)
 
-    fill.__doc__ = np.ndarray.fill.__doc__
-    fill._do_not_run_doctests = True
-
+    @numpy_docstring(np.ndarray.put)
     def put(self, indices, values, *args, **kwds):  # pylint: disable=C0111
         fail_for_dimension_mismatch(self, values, "fill")
         super().put(indices, values, *args, **kwds)
 
-    put.__doc__ = np.ndarray.put.__doc__
-    put._do_not_run_doctests = True
-
+    @numpy_docstring(np.ndarray.clip)
     def clip(self, a_min, a_max, *args, **kwds):  # pylint: disable=C0111
         fail_for_dimension_mismatch(self, a_min, "clip")
         fail_for_dimension_mismatch(self, a_max, "clip")
@@ -681,31 +688,22 @@ class Quantity(np.ndarray):
             self.dim,
         )
 
-    clip.__doc__ = np.ndarray.clip.__doc__
-    clip._do_not_run_doctests = True
-
+    @numpy_docstring(np.ndarray.dot)
     def dot(self, other, **kwds):  # pylint: disable=C0111
         return Quantity(
             np.array(self).dot(np.array(other), **kwds),
             self.dim * get_dimensions(other),
         )
 
-    dot.__doc__ = np.ndarray.dot.__doc__
-    dot._do_not_run_doctests = True
-
+    @numpy_docstring(np.ndarray.searchsorted)
     def searchsorted(self, v, **kwds):  # pylint: disable=C0111
         fail_for_dimension_mismatch(self, v, "searchsorted")
         return super().searchsorted(np.asarray(v), **kwds)
 
-    searchsorted.__doc__ = np.ndarray.searchsorted.__doc__
-    searchsorted._do_not_run_doctests = True
-
+    @numpy_docstring(np.ndarray.cumprod)
     def cumprod(self, *args, **kwds):  # pylint: disable=C0111
         if not self.is_dimensionless:
             raise TypeError(
                 "cumprod over array elements on quantities with dimensions is not possible."
             )
         return Quantity(np.asarray(self).cumprod(*args, **kwds))
-
-    cumprod.__doc__ = np.ndarray.cumprod.__doc__
-    cumprod._do_not_run_doctests = True

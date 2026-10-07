@@ -20,15 +20,17 @@ A function only goes into a bucket once a case in test_array_functions.py shows
 that it belongs there.
 """
 
+from collections.abc import Callable
+
 import numpy as np
 
 from ._dimension import DIMENSIONLESS, fail_for_dimension_mismatch, get_dimensions
 from ._errors import DimensionMismatchError
 
-SUBCLASS_SAFE = set()
-UNIT_FREE = set()
-UNSUPPORTED = {}  # function -> why it is refused
-HANDLED = {}  # function -> implementation(wrap, *args, **kwargs)
+SUBCLASS_SAFE: set[Callable] = set()
+UNIT_FREE: set[Callable] = set()
+UNSUPPORTED: dict[Callable, str] = {}  # function -> why it is refused
+HANDLED: dict[Callable, Callable] = {}  # function -> its implementation
 
 
 def implements(*functions):
