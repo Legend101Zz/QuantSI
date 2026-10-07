@@ -2,15 +2,19 @@
 
 ``parse_quantity("3.5 * mV")`` evaluates a deliberately small language: numbers,
 names of units, ``*``, ``/``, ``**`` with a plain number as the exponent, ``+`` and
-``-`` signs, and parentheses. The text is turned into a Python syntax tree with
-``ast.parse``, and the tree is walked node by node. A node of any other kind (a
-function call, an attribute, a subscript, a comprehension, ...) is refused before
-anything is evaluated, so nothing in the text is ever executed.
+``-`` signs, parentheses, and lists of numbers, optionally written as
+``array([...])`` so that the ``repr`` of an array quantity can be read back. The
+text is turned into a Python syntax tree with ``ast.parse``, and the tree is
+walked node by node. A node of any other kind (a function call, an attribute, a
+subscript, a comprehension, ...) is refused before anything is evaluated, so
+nothing in the text is ever executed.
 """
 
 import ast
 import difflib
 import functools
+
+import numpy as np
 
 from ._dimension import get_dimensions
 from ._errors import QuantityParseError
@@ -19,7 +23,10 @@ MAX_LENGTH = 500  #: characters
 MAX_NODES = 200  #: syntax-tree nodes
 MAX_EXPONENT = 64  #: largest allowed |exponent|; 10 ** 64 is already absurd for a unit
 
-GRAMMAR = "numbers, unit names, *, /, ** with a number as exponent, + and - signs, parentheses"
+GRAMMAR = (
+    "numbers, unit names, *, /, ** with a number as exponent, + and - signs, "
+    "parentheses, and lists of numbers"
+)
 
 
 @functools.cache
@@ -53,8 +60,14 @@ def parse_quantity(text, namespace=None):
         tree = ast.parse(text.strip(), mode="eval")
     except SyntaxError as error:
         raise QuantityParseError(f"Not a valid expression ({error.msg}): {text!r}") from None
-    if sum(1 for _ in ast.walk(tree)) > MAX_NODES:
+    nodes = list(ast.walk(tree))
+    if len(nodes) > MAX_NODES:
         raise QuantityParseError(f"Expression with more than {MAX_NODES} parts")
+    if any(isinstance(node, ast.Constant) and node.value is Ellipsis for node in nodes):
+        raise QuantityParseError(
+            "'...' marks an abbreviated array representation, which cannot be read "
+            "back; print the array with np.printoptions(threshold=sys.maxsize)"
+        )
     names = default_namespace() if namespace is None else namespace
     return _evaluate(tree.body, names)
 
@@ -105,10 +118,27 @@ def _evaluate(node, names):
             return -_evaluate(operand, names)
         case ast.UnaryOp(op=ast.UAdd(), operand=operand):
             return +_evaluate(operand, names)
+        case ast.List():
+            return np.array(_numbers(node, names))
+        case ast.Call(func=ast.Name(id="array"), args=[ast.List() as numbers], keywords=[]):
+            return np.array(_numbers(numbers, names))  # as written by repr
         case _:
             raise QuantityParseError(
                 f"{type(node).__name__} is not allowed in a unit expression (allowed: {GRAMMAR})"
             )
+
+
+def _numbers(node, names):
+    """The (nested) Python list of plain numbers written in a list node."""
+    values = []
+    for element in node.elts:
+        value = (
+            _numbers(element, names) if isinstance(element, ast.List) else _evaluate(element, names)
+        )
+        if not (_is_number(value) or isinstance(value, list)):
+            raise QuantityParseError("The elements of a list must be plain numbers")
+        values.append(value)
+    return values
 
 
 def _power(base, exponent):

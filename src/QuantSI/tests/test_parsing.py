@@ -1,10 +1,22 @@
 """parse_quantity: a small, safe language for quantities in text."""
 
+import numpy as np
 import pytest
 
 from QuantSI._errors import QuantityParseError
 from QuantSI._parsing import MAX_LENGTH, parse_dimensions, parse_quantity
-from QuantSI.allunits import amp, metre, msecond, mvolt, second, siemens, volt
+from QuantSI.allunits import (
+    amp,
+    cmetre,
+    metre,
+    msecond,
+    mvolt,
+    namp,
+    second,
+    siemens,
+    usiemens,
+    volt,
+)
 from QuantSI.fundamentalunits import DIMENSIONLESS
 from QuantSI.stdunits import cm, mV
 
@@ -48,6 +60,9 @@ def test_dimensionless_results_are_plain_numbers():
         ("sin(volt)", "Call is not allowed"),
         ("volt.dim", "Attribute is not allowed"),
         ("mvolt[0]", "Subscript is not allowed"),
+        ("[1 * mV, 2 * mV]", "must be plain numbers"),
+        ("array([1, 2], dtype=int)", "Call is not allowed"),
+        ("zeros([1, 2])", "Call is not allowed"),
         ("'3 mV'", "Constant is not allowed"),
         ("True * volt", "Constant is not allowed"),
         ("lambda: 1", "Lambda is not allowed"),
@@ -101,3 +116,62 @@ def test_parse_dimensions():
     assert parse_dimensions("2.5") is DIMENSIONLESS
     with pytest.raises(QuantityParseError):
         parse_dimensions("volt.dim")
+
+
+def test_lists_of_numbers():
+    q = parse_quantity("[1.5, -2.5] * mV")
+    np.testing.assert_array_equal(np.asarray(q), [0.0015, -0.0025])
+    assert parse_quantity("array([[1, 2], [3, 4]]) * mvolt").shape == (2, 2)
+
+
+# ---- Reading back what repr writes ------------------------------------------------
+# repr writes numbers with NumPy's print precision: by default 8 digits after the
+# decimal point, in the unit chosen for display. Values that print exactly read
+# back exactly; with np.printoptions(precision=17), every value does.
+ROUND_TRIP_VALUES = [3.0, -70.0, 0.025, 1e-9, 12345.0, 0.0]
+ROUND_TRIP_VALUES += [
+    np.array([1.5, -2.5]),
+    np.array([[1.0, 2.0], [3.0, 4.0]]),
+    np.array([1e-3, 2.5, 1e3]),
+]
+# Built inside the test: combining units registers them for display, and doing
+# that at import time would change the display for every other test.
+ROUND_TRIP_UNITS = {
+    "mvolt": lambda: mvolt,
+    "namp": lambda: namp,
+    "metre/second": lambda: metre / second,
+    "usiemens/cmetre**2": lambda: usiemens / cmetre**2,
+    "volt**2": lambda: volt**2,
+    "siemens": lambda: siemens,
+}
+
+
+@pytest.mark.parametrize("unit", ROUND_TRIP_UNITS)
+@pytest.mark.parametrize("value", ROUND_TRIP_VALUES, ids=lambda v: repr(v)[:20])
+def test_repr_reads_back(value, unit):
+    q = value * ROUND_TRIP_UNITS[unit]()
+    back = parse_quantity(repr(q))
+    assert back.dim is q.dim
+    np.testing.assert_allclose(np.asarray(back), np.asarray(q), rtol=1e-14)
+
+
+def test_repr_reads_back_exactly_with_full_precision():
+    rng = np.random.default_rng(7)
+    with np.printoptions(precision=17):
+        for value in [
+            *rng.normal(size=20) * 10.0 ** rng.integers(-12, 12, size=20),
+            rng.normal(size=5),
+        ]:
+            q = value * mvolt
+            np.testing.assert_array_equal(np.asarray(parse_quantity(repr(q))), np.asarray(q))
+
+
+def test_abbreviated_repr_is_refused():
+    with pytest.raises(QuantityParseError, match="abbreviated"):
+        parse_quantity(repr(np.arange(2000.0) * mvolt))
+
+
+def test_nan_does_not_read_back():
+    # Documented: NaN and infinity are not part of the language.
+    with pytest.raises(QuantityParseError, match="'nan' is not a known unit"):
+        parse_quantity(repr(np.array([np.nan, 1.0]) * mvolt))
