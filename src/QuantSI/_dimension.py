@@ -6,10 +6,13 @@ only one `Dimension` object for each combination of exponents, so checking
 whether two things have the same dimensions is just ``dim1 is dim2``.
 """
 
+import numbers
+
 import numpy as np
 from sympy import latex
 
-from ._utils import set_module
+from ._errors import DimensionMismatchError
+from ._utils import _short_str, set_module
 
 # The seven SI base dimensions (length, mass, time, current, temperature,
 # amount of substance, luminosity) and various descriptions;
@@ -338,3 +341,181 @@ def get_or_create_dimension(*args, **kwds):
         new_dim = Dimension(dims)
         _dimensions[dims] = new_dim
         return new_dim
+
+
+def is_scalar_type(obj):
+    """
+    Tells you if the object is a 1d number type.
+
+    Parameters
+    ----------
+    obj : `object`
+        The object to check.
+
+    Returns
+    -------
+    scalar : `bool`
+        ``True`` if `obj` is a scalar that can be interpreted as a
+        dimensionless `Quantity`.
+    """
+    try:
+        return obj.ndim == 0 and is_dimensionless(obj)
+    except AttributeError:
+        return np.isscalar(obj) and not isinstance(obj, str)
+
+
+def get_dimensions(obj):
+    """
+    Return the dimensions of any object that has them.
+
+    Slightly more general than `Quantity.dimensions` because it will
+    return `DIMENSIONLESS` if the object is of number type but not a `Quantity`
+    (e.g. a `float` or `int`).
+
+    Parameters
+    ----------
+    obj : `object`
+        The object to check.
+
+    Returns
+    -------
+    dim : `Dimension`
+        The physical dimensions of the `obj`.
+    """
+    try:
+        return obj.dim
+    except AttributeError:
+        # The following is not very pretty, but it will avoid the costly
+        # isinstance check for the common types
+        if type(obj) in [
+            bool,
+            int,
+            float,
+            np.int32,
+            np.int64,
+            np.float32,
+            np.float64,
+            np.ndarray,
+            np.bool_,
+        ] or isinstance(obj, (numbers.Number, np.number, np.ndarray)):
+            return DIMENSIONLESS
+        from .fundamentalunits import Quantity
+
+        try:
+            return Quantity(obj).dim
+        except TypeError:
+            raise TypeError(f"Object of type {type(obj)} does not have dimensions")
+
+
+def is_dimensionless(obj):
+    """
+    Test if a value is dimensionless or not.
+
+    Parameters
+    ----------
+    obj : `object`
+        The object to check.
+
+    Returns
+    -------
+    dimensionless : `bool`
+        ``True`` if `obj` is dimensionless.
+    """
+    return get_dimensions(obj) is DIMENSIONLESS
+
+
+def have_same_dimensions(obj1, obj2):
+    """Test if two values have the same dimensions.
+
+    Parameters
+    ----------
+    obj1, obj2 : {`Quantity`, array-like, number}
+        The values of which to compare the dimensions.
+
+    Returns
+    -------
+    same : `bool`
+        ``True`` if `obj1` and `obj2` have the same dimensions.
+    """
+    # If dimensions are consistently created using get_or_create_dimensions,
+    # the fast "is" comparison should always return the correct result.
+    # To be safe, we also do an equals comparison in case it fails. This
+    # should only add a small amount of unnecessary computation for cases in
+    # which this function returns False which very likely leads to a
+    # DimensionMismatchError anyway.
+    dim1 = get_dimensions(obj1)
+    dim2 = get_dimensions(obj2)
+    return (dim1 is dim2) or (dim1 == dim2) or dim1 is None or dim2 is None
+
+
+def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None, **error_quantities):
+    """
+    Compare the dimensions of two objects.
+
+    Parameters
+    ----------
+    obj1, obj2 : {array-like, `Quantity`}
+        The object to compare. If `obj2` is ``None``, assume it to be
+        dimensionless
+    error_message : str, optional
+        An error message that is used in the DimensionMismatchError
+    error_quantities : dict mapping str to `Quantity`, optional
+        Quantities in this dictionary will be converted using the `_short_str`
+        helper method and inserted into the ``error_message`` (which should
+        have placeholders with the corresponding names). The reason for doing
+        this in a somewhat complicated way instead of directly including all the
+        details in ``error_messsage`` is that converting large quantity arrays
+        to strings can be rather costly and we don't want to do it if no error
+        occured.
+
+    Returns
+    -------
+    dim1, dim2 : `Dimension`, `Dimension`
+        The physical dimensions of the two arguments (so that later code does
+        not need to get the dimensions again).
+
+    Raises
+    ------
+    DimensionMismatchError
+        If the dimensions of `obj1` and `obj2` do not match (or, if `obj2` is
+        ``None``, in case `obj1` is not dimensionsless).
+
+    Notes
+    -----
+    Implements special checking for ``0``, treating it as having "any
+    dimensions".
+    """
+    dim1 = get_dimensions(obj1)
+    if obj2 is None:
+        dim2 = DIMENSIONLESS
+    else:
+        dim2 = get_dimensions(obj2)
+
+    if dim1 is not dim2 and not (dim1 is None or dim2 is None):
+        # Special treatment for "0":
+        # if it is not a Quantity, it has "any dimension".
+        # This allows expressions like 3*mV + 0 to pass (useful in cases where
+        # zero is treated as the neutral element, e.g. in the Python sum
+        # builtin) or comparisons like 3 * mV == 0 to return False instead of
+        # failing # with a DimensionMismatchError. Note that 3*mV == 0*second
+        # is not allowed, though.
+        if (dim1 is DIMENSIONLESS and np.all(obj1 == 0)) or (
+            dim2 is DIMENSIONLESS and np.all(obj2 == 0)
+        ):
+            return dim1, dim2
+
+        if error_message is None:
+            error_message = "Dimension mismatch"
+        else:
+            error_quantities = {name: _short_str(q) for name, q in error_quantities.items()}
+            error_message = error_message.format(**error_quantities)
+        # If we are comparing an object to a specific unit, we don't want to
+        # restate this unit (it is probably mentioned in the text already)
+        from .fundamentalunits import Unit
+
+        if obj2 is None or isinstance(obj2, (Dimension, Unit)):
+            raise DimensionMismatchError(error_message, dim1)
+        else:
+            raise DimensionMismatchError(error_message, dim1, dim2)
+    else:
+        return dim1, dim2
