@@ -565,3 +565,116 @@ def _cumprod(function, as_quantity, /, a, *args, **kwargs):
             "the partial products would have different dimensions."
         )
     return function(np.asarray(a), *args, **kwargs)
+
+
+# ------------------------------------------------------------------------------
+# HANDLED: products and linear algebra
+# ------------------------------------------------------------------------------
+
+
+@implements(
+    np.dot,
+    np.inner,
+    np.vdot,
+    np.outer,
+    np.linalg.outer,
+    np.tensordot,
+    np.linalg.tensordot,
+    np.cross,
+    np.linalg.cross,
+    np.convolve,
+    np.correlate,
+)
+def _product(function, as_quantity, /, a, b, *args, out=None, **kwargs):
+    # Sums of products of an element of a with an element of b.
+    dim = _dim(a) * _dim(b)
+    if out is None:
+        return as_quantity(function(np.asarray(a), np.asarray(b), *args, **kwargs), dim)
+    result = function(np.asarray(a), np.asarray(b), *args, out=np.asarray(out), **kwargs)
+    return _with_output(as_quantity, result, dim, out)
+
+
+@implements(np.einsum)
+def _einsum(function, as_quantity, /, *operands, out=None, **kwargs):
+    # Whatever the subscripts, every operand is multiplied into each result element.
+    dim = DIMENSIONLESS
+    for operand in operands:
+        dim = dim * getattr(operand, "dim", DIMENSIONLESS)  # subscripts have none
+    raw_out = None if out is None else np.asarray(out)
+    result = np.einsum(*strip_units(operands), out=raw_out, **kwargs)
+    return _with_output(as_quantity, result, dim, out)
+
+
+@implements(np.linalg.multi_dot)
+def _multi_dot(function, as_quantity, /, arrays, *, out=None):
+    arrays = list(arrays)
+    dim = DIMENSIONLESS
+    for array in arrays:
+        dim = dim * _dim(array)
+    raw_out = None if out is None else np.asarray(out)
+    result = np.linalg.multi_dot(strip_units(arrays), out=raw_out)
+    return _with_output(as_quantity, result, dim, out)
+
+
+@implements(np.linalg.det)
+def _det(function, as_quantity, /, a):
+    # A sum of products of n entries of an n x n matrix.
+    return as_quantity(np.linalg.det(np.asarray(a)), _dim(a) ** np.shape(a)[-1])
+
+
+@implements(np.linalg.inv, np.linalg.pinv)
+def _inverse(function, as_quantity, /, a, *args, **kwargs):
+    return as_quantity(function(np.asarray(a), *args, **kwargs), _dim(a) ** -1)
+
+
+@implements(np.linalg.solve)
+def _solve(function, as_quantity, /, a, b):
+    # x with a @ x == b
+    return as_quantity(np.linalg.solve(np.asarray(a), np.asarray(b)), _dim(b) / _dim(a))
+
+
+@implements(np.linalg.eig, np.linalg.eigh)
+def _eig(function, as_quantity, /, a, *args, **kwargs):
+    # Eigenvalues have the matrix's dimensions; eigenvectors are normalised.
+    result = function(np.asarray(a), *args, **kwargs)
+    return type(result)(as_quantity(result.eigenvalues, _dim(a)), result.eigenvectors)
+
+
+@implements(np.linalg.eigvals, np.linalg.eigvalsh, np.linalg.svdvals)
+def _eigenvalues(function, as_quantity, /, a, *args, **kwargs):
+    return as_quantity(function(np.asarray(a), *args, **kwargs), _dim(a))
+
+
+@implements(np.linalg.svd)
+def _svd(function, as_quantity, /, a, full_matrices=True, compute_uv=True, hermitian=False):
+    result = np.linalg.svd(np.asarray(a), full_matrices, compute_uv, hermitian)
+    if not compute_uv:
+        return as_quantity(result, _dim(a))
+    # The singular values have the matrix's dimensions; U and Vh are orthonormal.
+    return type(result)(result.U, as_quantity(result.S, _dim(a)), result.Vh)
+
+
+@implements(np.linalg.qr)
+def _qr(function, as_quantity, /, a, mode="reduced"):
+    if mode == "raw":
+        raise TypeError("numpy.linalg.qr(mode='raw') is not supported for quantities")
+    result = np.linalg.qr(np.asarray(a), mode=mode)
+    if mode == "r":
+        return as_quantity(result, _dim(a))
+    # Q is orthonormal, R has the matrix's dimensions.
+    return type(result)(result.Q, as_quantity(result.R, _dim(a)))
+
+
+@implements(np.linalg.cholesky)
+def _cholesky(function, as_quantity, /, a, *args, **kwargs):
+    # L with L @ L.T == a
+    return as_quantity(np.linalg.cholesky(np.asarray(a), *args, **kwargs), _dim(a) ** 0.5)
+
+
+@implements(np.linalg.norm, np.linalg.vector_norm, np.linalg.matrix_norm)
+def _norm(function, as_quantity, /, x, *args, **kwargs):
+    result = function(np.asarray(x), *args, **kwargs)
+    order = kwargs.get("ord", args[0] if args and function is np.linalg.norm else None)
+    if isinstance(order, (int, float)) and order == 0:
+        return result  # the "0-norm" counts the non-zero elements
+    return as_quantity(result, _dim(x))
