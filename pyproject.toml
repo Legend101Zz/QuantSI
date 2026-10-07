@@ -53,7 +53,13 @@ write_to = "QuantSI/_version.py"
 write_template = "__version__ = '{}'"
 
 [tool.pytest.ini_options]
-addopts = "-ra"
+minversion = "8.3"
+testpaths = ["src/QuantSI"]
+addopts = ["-ra", "--strict-markers", "--strict-config", "--doctest-modules"]
+xfail_strict = true
+# Treat warnings as errors, so that deprecations show up early. A test that
+# expects a warning can allow it with @pytest.mark.filterwarnings.
+filterwarnings = ["error"]
 
 [tool.ruff]
 line-length = 100

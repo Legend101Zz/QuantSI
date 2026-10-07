@@ -26,7 +26,7 @@ jobs:
 
     - name: Run tests
       run: |
-        pdm run -v pytest --cov=QuantSI --cov-report lcov --doctest-modules
+        pdm run -v pytest --cov=QuantSI --cov-report lcov
 
     - name: Publish coverage
       uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e  # v2.3.7
