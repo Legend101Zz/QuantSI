@@ -32,3 +32,13 @@ def test_stdunits_is_up_to_date():
         "stdunits.py differs from what tools/generate_units.py generates; "
         "run `python tools/generate_units.py` and commit the result"
     )
+
+
+@pytest.mark.skipif(not GENERATOR.exists(), reason="generator not available (installed package)")
+def test_init_unit_names_are_up_to_date():
+    generator = load_generator()
+    current = generator.INIT.read_text()
+    assert generator.generate_init(current) == current, (
+        "the unit names in __init__.py differ from what tools/generate_units.py "
+        "generates; run `python tools/generate_units.py` and commit the result"
+    )

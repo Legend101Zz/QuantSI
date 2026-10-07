@@ -17,6 +17,7 @@ import pathlib
 PACKAGE = pathlib.Path(__file__).parent.parent / "src" / "QuantSI"
 OUTPUT = PACKAGE / "allunits.py"
 STDUNITS_OUTPUT = PACKAGE / "stdunits.py"
+INIT = PACKAGE / "__init__.py"
 
 #: The SI prefixes, in the order in which units are generated. The order looks
 #: random because it is: it was the iteration order of a dict when the units were
@@ -278,6 +279,52 @@ def generate_stdunits():
     )
 
 
+#: Units importable from the package root: every unit of the catalogue, without
+#: prefix and with these prefixes (centi also for metre/meter), plus every short
+#: name. Units that are never prefixed (there is no "mkelvin") appear bare.
+TOP_LEVEL_PREFIXES = ["p", "n", "u", "m", "", "k", "M", "G", "T"]
+EXTRA_TOP_LEVEL_PREFIXES = {"metre": ["c"], "meter": ["c"]}
+NEVER_PREFIXED = ["kilogram", "kilogramme", "kelvin"]
+
+
+def top_level_names():
+    units = FUNDAMENTAL_UNITS + ["kilogramme", "gram", "gramme", "molar"]
+    units += [name for name, _, _ in DERIVED_UNITS] + ["liter", "litre"]
+    names = []
+    for unit in units:
+        if unit in NEVER_PREFIXED:
+            names.append(unit)
+            continue
+        for prefix in TOP_LEVEL_PREFIXES + EXTRA_TOP_LEVEL_PREFIXES.get(unit, []):
+            names.append(prefix + unit)
+    return names
+
+
+BEGIN = "# --- BEGIN GENERATED {0} (tools/generate_units.py; do not edit) ---\n"
+END = "# --- END GENERATED {0} ---\n"
+
+
+def generate_init(current):
+    """``current`` (the text of __init__.py) with its generated blocks rewritten."""
+    units = top_level_names()
+    shorts = [short for short, _ in short_names()]
+    blocks = {
+        "IMPORTS": (
+            "from .allunits import (\n"
+            + "".join(f"    {name},\n" for name in units)
+            + ")\nfrom .stdunits import (\n"
+            + "".join(f"    {name},\n" for name in shorts)
+            + ")\n"
+        ),
+        "NAMES": "__all__ += [\n" + "".join(f'    "{name}",\n' for name in units + shorts) + "]\n",
+    }
+    for label, body in blocks.items():
+        begin, end = BEGIN.format(label), END.format(label)
+        start = current.index(begin) + len(begin)
+        current = current[:start] + body + current[current.index(end) :]
+    return current
+
+
 def _wrap(text, width):
     import textwrap
 
@@ -287,4 +334,5 @@ def _wrap(text, width):
 if __name__ == "__main__":
     OUTPUT.write_text(generate())
     STDUNITS_OUTPUT.write_text(generate_stdunits())
-    print(f"wrote {OUTPUT} and {STDUNITS_OUTPUT}")
+    INIT.write_text(generate_init(INIT.read_text()))
+    print(f"wrote {OUTPUT}, {STDUNITS_OUTPUT} and the unit names in {INIT}")

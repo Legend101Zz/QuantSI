@@ -11,6 +11,7 @@ Welcome to QuantSI's documentation!
    :caption: Contents:
 
    user/units
+   user/naming
    user/numpy
    user/text
    developer/units
