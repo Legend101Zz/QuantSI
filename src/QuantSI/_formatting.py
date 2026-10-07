@@ -4,6 +4,8 @@
 ``repr``, ``format``, ``in_unit`` and ``in_best_unit`` all go through it.
 """
 
+import sys
+
 import numpy as np
 
 from ._dimension import fail_for_dimension_mismatch, is_dimensionless
@@ -47,6 +49,62 @@ def _with_unit(text, quantity, unit, python_code):
         return f"{type(quantity).__name__}({text})" if python_code else text
     name = unit if isinstance(unit, Unit) else unit.dim
     return f"{text} * {name!r}" if python_code else f"{text} {name!s}"
+
+
+def format_quantity_latex(quantity):
+    """Write a scalar, 1-d or 2-d quantity as LaTeX, in its best unit.
+
+    Used as the "rich representation" in Jupyter notebooks. The numbers are
+    formatted with `numpy.array2string` and therefore follow NumPy's print options
+    such as ``precision``. Writing every number of a large array is rarely useful,
+    so the ``threshold`` print option is divided by 100 (the default of 1000
+    becomes 10). The ``max_line_width`` print option is ignored.
+    """
+    best_unit = quantity.get_best_unit()
+    if isinstance(best_unit, Unit):
+        best_unit_latex = best_unit._latex()
+    else:  # A quantity
+        best_unit_latex = best_unit.dimensions._latex()
+    unitless = np.asarray(quantity / best_unit)
+    threshold = np.get_printoptions()["threshold"] // 100
+    if unitless.ndim == 0:
+        number = float(unitless)
+    elif unitless.ndim == 1:
+        array_str = np.array2string(
+            unitless,
+            separator=" & ",
+            threshold=threshold,
+            max_line_width=sys.maxsize,
+        )
+        # Replace [ and ]
+        number = (
+            r"\left[\begin{matrix}"
+            + array_str[1:-1].replace("...", r"\dots")
+            + r"\end{matrix}\right]"
+        )
+    elif unitless.ndim == 2:
+        array_str = np.array2string(
+            unitless,
+            separator=" & ",
+            threshold=threshold,
+            max_line_width=sys.maxsize,
+        )
+        array_str = array_str[1:-1].replace("...", r"\dots")
+        array_str = array_str.replace("[", "").replace("] &", r"\\").replace("]", "\n")
+        lines = array_str.split("\n")
+        n_cols = lines[0].count("&") + 1
+        new_lines = []
+        for line in lines:
+            if line.strip() == r"\dots &":
+                new_lines.append(" & ".join([r"\vdots"] * n_cols) + r"\\")
+            else:
+                new_lines.append(line)
+        number = r"\left[\begin{matrix}" + "\n" + "\n".join(new_lines) + r"\end{matrix}\right]"
+    else:
+        raise NotImplementedError(
+            f"Cannot create a LaTeX representation for a {unitless.ndim}-d matrix."
+        )
+    return f"{number}\\,{best_unit_latex}"
 
 
 def in_unit(x, u, precision=None):

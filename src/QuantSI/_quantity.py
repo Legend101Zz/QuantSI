@@ -7,7 +7,6 @@ that's where dimensions are checked and combined.
 
 import numbers
 import operator
-import sys
 from warnings import warn
 
 import numpy as np
@@ -609,67 +608,12 @@ class Quantity(np.ndarray):
     def __repr__(self):
         return self.in_best_unit(python_code=True)
 
-    def _latex(self, expr):
-        """
-        Translates a scalar, 1-d or 2-d array into a LaTeX representation. Will be called
-        by ``sympy``'s `~sympy.latex` function and used as a "rich representation" in e.g.
-        jupyter notebooks.
-        The values in the array will be formatted with `numpy.array2string` and will
-        therefore observe ``numpy``'s "print options" such as ``precision``. Including
-        all numbers in the LaTeX output will rarely be useful for large arrays; this
-        function will therefore apply a ``threshold`` value divided by 100 (the default
-        ``threshold`` value is 1000, this function hence applies 10). Note that the
-        ``max_line_width`` print option is ignored.
-        """
-        from ._unit import Unit
+    def _latex(self, *args):
+        """LaTeX for this quantity; SymPy's ``latex()`` calls this too (passing its
+        printer, which is not needed). See `format_quantity_latex`."""
+        from ._formatting import format_quantity_latex
 
-        best_unit = self.get_best_unit()
-        if isinstance(best_unit, Unit):
-            best_unit_latex = best_unit._latex()
-        else:  # A quantity
-            best_unit_latex = best_unit.dimensions._latex()
-        unitless = np.asarray(self / best_unit)
-        threshold = np.get_printoptions()["threshold"] // 100
-        if unitless.ndim == 0:
-            sympy_quantity = float(unitless)
-        elif unitless.ndim == 1:
-            array_str = np.array2string(
-                unitless,
-                separator=" & ",
-                threshold=threshold,
-                max_line_width=sys.maxsize,
-            )
-            # Replace [ and ]
-            sympy_quantity = (
-                r"\left[\begin{matrix}"
-                + array_str[1:-1].replace("...", r"\dots")
-                + r"\end{matrix}\right]"
-            )
-        elif unitless.ndim == 2:
-            array_str = np.array2string(
-                unitless,
-                separator=" & ",
-                threshold=threshold,
-                max_line_width=sys.maxsize,
-            )
-            array_str = array_str[1:-1].replace("...", r"\dots")
-            array_str = array_str.replace("[", "").replace("] &", r"\\").replace("]", "\n")
-            lines = array_str.split("\n")
-            n_cols = lines[0].count("&") + 1
-            new_lines = []
-            for line in lines:
-                if line.strip() == r"\dots &":
-                    new_lines.append(" & ".join([r"\vdots"] * n_cols) + r"\\")
-                else:
-                    new_lines.append(line)
-            sympy_quantity = (
-                r"\left[\begin{matrix}" + "\n" + "\n".join(new_lines) + r"\end{matrix}\right]"
-            )
-        else:
-            raise NotImplementedError(
-                f"Cannot create a LaTeX representation for a {unitless.ndim}-d matrix."
-            )
-        return f"{sympy_quantity}\\,{best_unit_latex}"
+        return format_quantity_latex(self)
 
     def _repr_latex_(self):
         return f"${self._latex(None)}$"
