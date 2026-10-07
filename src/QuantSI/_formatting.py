@@ -19,17 +19,16 @@ def format_quantity(quantity, unit, precision=None, python_code=False):
     ``precision`` overrides the print option of that name.
     """
     value = np.asarray(quantity / unit)
-    # numpy uses the printoptions setting only in arrays, not in array
-    # scalars, so we use this hackish way of turning the scalar first into
-    # an array, then removing the square brackets from the output
     if value.shape == ():
-        s = np.array_str(np.array([value]), precision=precision)
-        s = s.replace("[", "").replace("]", "").strip()
+        # A scalar is written as a one-element array without its brackets: NumPy
+        # scalars ignore the print options, and 0-d arrays are written with the
+        # scalar's repr in NumPy's legacy print mode (legacy="1.13", which Brian2's
+        # tests use). One-element arrays follow the print options in every mode.
+        s = np.array2string(value.reshape(1), precision=precision)[1:-1].strip()
+    elif python_code:
+        s = np.array_repr(value, precision=precision)
     else:
-        if python_code:
-            s = np.array_repr(value, precision=precision)
-        else:
-            s = np.array_str(value, precision=precision)
+        s = np.array_str(value, precision=precision)
 
     if not unit.is_dimensionless:
         if isinstance(unit, Unit):
