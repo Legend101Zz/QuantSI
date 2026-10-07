@@ -71,3 +71,16 @@ def test_registering_a_unit_updates_the_choice():
 
     registry.add(mvolt)
     assert registry[q] is mvolt
+
+
+def test_registrations_are_undone_between_tests():
+    from QuantSI.allunits import mmetre, pfarad
+    from QuantSI.conftest import preserved_unit_registries
+    from QuantSI.fundamentalunits import register_new_unit
+
+    q = 2.0 * farad / metre**2
+    before = str(q)
+    with preserved_unit_registries():
+        register_new_unit(pfarad / mmetre**2)
+        assert str(q) != before
+    assert str(q) == before
