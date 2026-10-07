@@ -370,10 +370,11 @@ def _fill_diagonal(function, as_quantity, /, a, val, wrap=False):
     np.fill_diagonal(np.asarray(a), np.asarray(val), wrap=wrap)
 
 
-@implements(np.isin)
+# np.in1d, the deprecated name of np.isin, exists in NumPy < 2.4 only.
+@implements(np.isin, *[np.in1d] if hasattr(np, "in1d") else [])
 def _isin(function, as_quantity, /, element, test_elements, *args, **kwargs):
     _shared_dimensions([element, test_elements], function)
-    return np.isin(np.asarray(element), np.asarray(test_elements), *args, **kwargs)
+    return function(np.asarray(element), np.asarray(test_elements), *args, **kwargs)
 
 
 @implements(np.digitize)

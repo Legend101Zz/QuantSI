@@ -596,6 +596,17 @@ CASES = {
 }
 
 
+if hasattr(np, "in1d"):  # NumPy < 2.4
+    CASES["in1d"] = [
+        ("1d", lambda ns: without_deprecations(np.in1d, ns.m, ns.m[:2]), "plain"),
+        (
+            "mismatch",
+            lambda ns: without_deprecations(np.in1d, ns.m, ns.s),
+            "DimensionMismatchError",
+        ),
+    ]
+
+
 def numpy_function(name):
     module = np
     for part in name.split(".")[:-1]:
