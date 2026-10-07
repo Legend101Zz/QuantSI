@@ -6,7 +6,7 @@ information on the function it wraps (``_arg_units``, ``_arg_names``,
 Brian2's code generation reads these attributes, so don't rename them.
 """
 
-from collections.abc import Callable
+import functools
 
 import numpy as np
 
@@ -123,10 +123,18 @@ def check_units(**au):
     """
 
     def do_check_units(f):
+        # Everything that depends only on f and on the decorator's arguments is
+        # worked out once, here, instead of on every call.
+        n_positional = f.__code__.co_argcount
+        positional_names = f.__code__.co_varnames[0:n_positional]
+        result_unit = au.get("result")
+        result_is_bool = "result" in au and result_unit in (bool, np.bool_)
+        result_is_function = callable(result_unit) and not result_is_bool
+
+        @functools.wraps(f)
         def new_f(*args, **kwds):
             newkeyset = kwds.copy()
-            arg_names = f.__code__.co_varnames[0 : f.__code__.co_argcount]
-            for n, v in zip(arg_names, args[0 : f.__code__.co_argcount]):
+            for n, v in zip(positional_names, args[0:n_positional]):
                 if not isinstance(v, (Quantity, str, bool, np.bool_)) and v is not None and n in au:
                     try:
                         # allow e.g. to pass a Python list of values
@@ -197,14 +205,11 @@ def check_units(**au):
 
             result = f(*args, **kwds)
             if "result" in au:
-                if isinstance(au["result"], Callable) and au["result"] not in (
-                    bool,
-                    np.bool_,
-                ):
-                    expected_result = au["result"](*[get_dimensions(a) for a in args])
+                if result_is_function:
+                    expected_result = result_unit(*[get_dimensions(a) for a in args])
                 else:
-                    expected_result = au["result"]
-                if au["result"] in (bool, np.bool_):
+                    expected_result = result_unit
+                if result_is_bool:
                     if not isinstance(result, (bool, np.bool_)):
                         error_message = (
                             "The return value of function "
