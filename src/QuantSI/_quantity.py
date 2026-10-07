@@ -242,23 +242,41 @@ class Quantity(np.ndarray):
     def __array_ufunc__(self, uf, method, *inputs, **kwargs):
         if method not in ("__call__", "reduce"):
             return NotImplemented
-        if "out" in kwargs:
-            # In contrast to numpy, we will not change a scalar value in-place,
-            # i.e. a scalar Quantity will act like a Python float and not like
-            # a numpy scalar in that regard.
-            if self.ndim == 0:
-                del kwargs["out"]
-            else:
-                # The output needs to be an array to avoid infinite recursion
-                # Note that it is also part of the input arguments, so we don't
-                # need to check its dimensions
-                assert len(kwargs["out"]) == 1
-                kwargs["out"] = (np.asarray(kwargs["out"][0]),)
         handler = HANDLERS.get(uf)
         if handler is None:
             return NotImplemented
+        if "out" in kwargs:
+            return self._ufunc_with_output(handler, uf, method, inputs, kwargs)
         result, dim = handler(self, uf, method, inputs, kwargs)
         return result if dim is None else _new_quantity(result, dim)
+
+    def _ufunc_with_output(self, handler, uf, method, inputs, kwargs):
+        """Run a ufunc with ``out=``, keeping the output's dimensions correct.
+
+        * A scalar (0-d) Quantity output behaves like a Python float: it is not
+          written to, so ``x += y`` rebinds ``x`` to a new object.
+        * A Quantity array output receives the values and is relabelled with the
+          dimensions of the result (as in astropy), so ``q *= 2 * second`` works
+          and the buffer never carries a wrong label. The output object itself is
+          returned, as NumPy specifies.
+        * A plain ndarray output receives the values in base SI units.
+        * Units cannot be used as outputs: they are shared constants.
+        """
+        from ._unit import Unit
+
+        (out,) = kwargs["out"]
+        if isinstance(out, Unit):
+            raise TypeError("Units cannot be modified in-place")
+        if isinstance(out, Quantity) and out.ndim == 0:
+            del kwargs["out"]
+            result, dim = handler(self, uf, method, inputs, kwargs)
+            return result if dim is None else _new_quantity(result, dim)
+        kwargs["out"] = (np.asarray(out),)  # the same buffer, without the Quantity
+        result, dim = handler(self, uf, method, inputs, kwargs)
+        if not isinstance(out, Quantity):
+            return result if dim is None else _new_quantity(result, dim)
+        out.dim = DIMENSIONLESS if dim is None else dim
+        return out
 
     def __deepcopy__(self, memo):
         return Quantity(self, copy=True)
