@@ -183,6 +183,23 @@ def quantity_with_dimensions(floatval, dims):
     return Quantity(floatval, get_or_create_dimension(dims._dims))
 
 
+def _new_quantity(values, dim):
+    """``Quantity(values, dim=dim)`` for values NumPy has just computed.
+
+    ``Quantity.__new__`` checks that the data is numeric and works out a
+    dimension when none is given. For the result of a NumPy operation on valid
+    quantities neither check can fail, so this skips them and gives the same
+    result. In particular, dimensionless results still become plain arrays or
+    Python numbers.
+    """
+    values = np.asarray(values)
+    if dim is DIMENSIONLESS:
+        return values.item() if values.shape == () else values
+    result = values.view(Quantity)
+    result.dim = dim
+    return result
+
+
 class Quantity(np.ndarray):
     """
     A number with an associated physical dimension. In most cases, it is not
@@ -341,10 +358,7 @@ class Quantity(np.ndarray):
             # do not touch return value
             return uf_method(*[np.asarray(a) for a in inputs], **kwargs)
         elif uf.__name__ in UFUNCS_PRESERVE_DIMENSIONS:
-            return Quantity(
-                uf_method(*[np.asarray(a) for a in inputs], **kwargs),
-                dim=self.dim,
-            )
+            return _new_quantity(uf_method(*[np.asarray(a) for a in inputs], **kwargs), self.dim)
         elif uf.__name__ in UFUNCS_CHANGE_DIMENSIONS + ["power"]:
             if uf.__name__ == "sqrt":
                 dim = self.dim**0.5
@@ -374,7 +388,7 @@ class Quantity(np.ndarray):
                     dim = get_dimensions(inputs[0])
             else:
                 return NotImplemented
-            return Quantity(uf_method(*[np.asarray(a) for a in inputs], **kwargs), dim=dim)
+            return _new_quantity(uf_method(*[np.asarray(a) for a in inputs], **kwargs), dim)
         elif uf.__name__ in UFUNCS_INTEGERS:
             # Numpy should already raise a TypeError by itself
             raise TypeError(f"{uf.__name__} cannot be used on quantities.")
@@ -392,9 +406,8 @@ class Quantity(np.ndarray):
             if uf.__name__ in UFUNCS_COMPARISONS:
                 return uf_method(*[np.asarray(i) for i in inputs], **kwargs)
             else:
-                return Quantity(
-                    uf_method(*[np.asarray(i) for i in inputs], **kwargs),
-                    dim=self.dim,
+                return _new_quantity(
+                    uf_method(*[np.asarray(i) for i in inputs], **kwargs), self.dim
                 )
         elif uf.__name__ in UFUNCS_DIMENSIONLESS:
             # Ok if argument is dimensionless
@@ -675,7 +688,7 @@ class Quantity(np.ndarray):
         """Overwritten to assure that single elements (i.e., indexed with a
         single integer or a tuple of integers) retain their unit.
         """
-        return Quantity(np.ndarray.__getitem__(self, key), self.dim)
+        return _new_quantity(np.ndarray.__getitem__(self, key), self.dim)
 
     def item(self, *args):
         """Overwritten to assure that the returned element retains its unit."""
