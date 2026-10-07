@@ -4,8 +4,8 @@ import pytest
 def pytest_collection_modifyitems(config, items):
     # List of function names whose doctests should be skipped
     functions_to_skip = {
-        "QuantSI.fundamentalunits.Quantity.fill",
-        "QuantSI.fundamentalunits.Quantity.trace",
+        "Quantity.fill",
+        "Quantity.trace",
     }
 
     for item in items:
