@@ -7,8 +7,8 @@ authors = [
     {name = "Dan Goodman"},
     {name = "Romain Brette"},
 ]
-dependencies = ["numpy>=1.25", "sympy>=1.2"]
-requires-python = ">=3.10"
+dependencies = ["numpy>=2.2", "sympy>=1.2"]
+requires-python = ">=3.12"
 readme = "README.md"
 license = {text = "GPLv3"}
 keywords = ['SI', 'SI units', 'unit system', 'physical quantities']
@@ -57,7 +57,7 @@ addopts = "-ra"
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py312"
 extend-exclude = ["src/QuantSI/allunits.py"]  # generated file, not edited by hand
 
 [tool.ruff.lint]
