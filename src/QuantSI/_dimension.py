@@ -9,7 +9,6 @@ whether two things have the same dimensions is just ``dim1 is dim2``.
 import numbers
 
 import numpy as np
-from sympy import latex
 
 from ._errors import DimensionMismatchError
 from ._utils import _short_str, set_module
@@ -210,7 +209,7 @@ class Dimension:
         return s.strip()
 
     def _repr_latex(self):
-        return f"${latex(self)}$"
+        return f"${self._latex()}$"
 
     def __repr__(self):
         return self._str_representation(python_code=True)

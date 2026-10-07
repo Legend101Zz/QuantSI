@@ -1,5 +1,8 @@
 """Small helpers shared by QuantSI's internal modules."""
 
+import math
+import numbers
+
 import numpy as np
 
 
@@ -42,3 +45,29 @@ def _short_str(arr):
     arr_string = str(arr)
     np.set_printoptions(**old_printoptions)
     return arr_string
+
+
+def _latex_number(value):
+    r"""Write a number in LaTeX, the way SymPy's ``latex()`` prints Python numbers.
+
+    Integers print as digits; floats with 15 significant digits, always with a
+    decimal point (``2.0``), and in scientific notation as ``1.0 \cdot 10^{-20}``.
+    QuantSI used to call SymPy for this (only for unit exponents such as the 3 in
+    ``metre ** 3``), which made SymPy a required dependency and about 80% of
+    QuantSI's import time.
+    """
+    if isinstance(value, numbers.Integral):
+        return str(int(value))
+    value = float(value)
+    if math.isinf(value):
+        return r"\infty" if value > 0 else r"-\infty"
+    if math.isnan(value):
+        return r"\text{NaN}"
+    if value == 0:
+        value = 0.0  # SymPy prints -0.0 as 0.0
+    mantissa, _, exponent = format(value, ".15g").partition("e")
+    if "." not in mantissa:
+        mantissa += ".0"
+    if not exponent:
+        return mantissa
+    return rf"{mantissa} \cdot 10^{{{int(exponent)}}}"

@@ -1,11 +1,11 @@
 """The Unit class: a named, scaled quantity such as ``mvolt``."""
 
 import numpy as np
-from sympy import latex
 
 from ._dimension import DIMENSIONLESS, _siprefixes, is_dimensionless, is_scalar_type
 from ._quantity import Quantity
 from ._registry import register_new_unit
+from ._utils import _latex_number
 
 
 class Unit(Quantity):
@@ -280,7 +280,7 @@ class Unit(Quantity):
         return self.latexname
 
     def _repr_latex_(self):
-        return f"${latex(self)}$"
+        return f"${self._latex()}$"
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         if method != "__call__":
@@ -358,7 +358,7 @@ class Unit(Quantity):
                     latexname = first.latexname
                 dispname += f"^{str(second)}"
                 name += f" ** {repr(second)}"
-                latexname += "^{%s}" % latex(second)
+                latexname += "^{%s}" % _latex_number(second)
                 scale = first.scale * second
                 u = Unit(
                     10.0**scale,

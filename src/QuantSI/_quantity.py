@@ -12,7 +12,6 @@ from warnings import warn
 
 import numpy as np
 from numpy.exceptions import VisibleDeprecationWarning
-from sympy import latex
 
 from ._dimension import (
     DIMENSIONLESS,
@@ -773,9 +772,9 @@ class Quantity(np.ndarray):
 
         best_unit = self.get_best_unit()
         if isinstance(best_unit, Unit):
-            best_unit_latex = latex(best_unit)
+            best_unit_latex = best_unit._latex()
         else:  # A quantity
-            best_unit_latex = latex(best_unit.dimensions)
+            best_unit_latex = best_unit.dimensions._latex()
         unitless = np.asarray(self / best_unit)
         threshold = np.get_printoptions()["threshold"] // 100
         if unitless.ndim == 0:
@@ -820,7 +819,7 @@ class Quantity(np.ndarray):
         return f"{sympy_quantity}\\,{best_unit_latex}"
 
     def _repr_latex_(self):
-        return f"${latex(self)}$"
+        return f"${self._latex(None)}$"
 
     def __str__(self):
         return self.in_best_unit()
