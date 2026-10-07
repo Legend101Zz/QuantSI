@@ -44,6 +44,12 @@ def without_deprecations(function, *args):
         return function(*args)
 
 
+def written(function, array, *args):
+    """Call a function that writes into ``array`` in place; return the array."""
+    assert function(array, *args) is None
+    return array
+
+
 def namespace(length, time, tmp_path):
     ns = types.SimpleNamespace(unit=length, second=time, tmp=tmp_path)
     ns.m = np.array([1.0, 2.0, 3.0, 4.0]) * length
@@ -236,6 +242,90 @@ CASES = {
         ("1d", lambda ns: np.lib.stride_tricks.sliding_window_view(ns.m, 2), "m")
     ],
     "unique_all": [("1d", lambda ns: np.unique_all(ns.m), ("m", "plain", "plain", "plain"))],
+    # ---- HANDLED: selecting, writing, set operations ------------------------------------
+    "where": [
+        ("3 arguments", lambda ns: np.where(ns.b, ns.m, 0 * ns.unit), "m"),
+        ("1 argument", lambda ns: np.where(ns.m > 2 * ns.unit), ("plain",)),
+        ("mismatch", lambda ns: np.where(ns.b, ns.m, ns.s), "DimensionMismatchError"),
+    ],
+    "select": [
+        ("1d", lambda ns: np.select([ns.b], [ns.m], 0 * ns.unit), "m"),
+        ("mismatch", lambda ns: np.select([ns.b], [ns.m], 1 * ns.second), "DimensionMismatchError"),
+    ],
+    "choose": [
+        ("1d", lambda ns: np.choose([0, 1, 0, 1], [ns.m, ns.m]), "m"),
+        ("mismatch", lambda ns: np.choose([0, 1, 0, 1], [ns.m, ns.s]), "DimensionMismatchError"),
+    ],
+    "copyto": [
+        ("quantity", lambda ns: written(np.copyto, ns.m.copy(), 2 * ns.unit), "m"),
+        ("plain number", lambda ns: written(np.copyto, ns.m.copy(), 2.0), "m"),
+        (
+            "mismatch",
+            lambda ns: written(np.copyto, ns.m.copy(), 2 * ns.second),
+            "DimensionMismatchError",
+        ),
+    ],
+    "place": [
+        ("1d", lambda ns: written(np.place, ns.m.copy(), ns.b, 7 * ns.unit), "m"),
+        (
+            "mismatch",
+            lambda ns: written(np.place, ns.m.copy(), ns.b, 7.0),
+            "DimensionMismatchError",
+        ),
+    ],
+    "putmask": [
+        ("1d", lambda ns: written(np.putmask, ns.m.copy(), ns.b, 7 * ns.unit), "m"),
+        (
+            "mismatch",
+            lambda ns: written(np.putmask, ns.m.copy(), ns.b, 7 * ns.second),
+            "DimensionMismatchError",
+        ),
+    ],
+    "put_along_axis": [
+        (
+            "1d",
+            lambda ns: written(np.put_along_axis, ns.m.copy(), np.array([0]), 9 * ns.unit, 0),
+            "m",
+        ),
+        (
+            "mismatch",
+            lambda ns: written(np.put_along_axis, ns.m.copy(), np.array([0]), 9.0, 0),
+            "DimensionMismatchError",
+        ),
+    ],
+    "fill_diagonal": [
+        ("2d", lambda ns: written(np.fill_diagonal, ns.M.copy(), 0 * ns.unit), "m"),
+        (
+            "mismatch",
+            lambda ns: written(np.fill_diagonal, ns.M.copy(), 1 * ns.second),
+            "DimensionMismatchError",
+        ),
+    ],
+    "isin": [
+        ("1d", lambda ns: np.isin(ns.m, ns.m[:2]), "plain"),
+        ("mismatch", lambda ns: np.isin(ns.m, ns.s), "DimensionMismatchError"),
+    ],
+    "digitize": [
+        ("1d", lambda ns: np.digitize(ns.m, ns.m), "plain"),
+        ("mismatch", lambda ns: np.digitize(ns.m, ns.s), "DimensionMismatchError"),
+    ],
+    "union1d": [
+        ("1d", lambda ns: np.union1d(ns.m, ns.m), "m"),
+        ("mismatch", lambda ns: np.union1d(ns.m, ns.s), "DimensionMismatchError"),
+    ],
+    "setxor1d": [("1d", lambda ns: np.setxor1d(ns.m, ns.m[:2]), "m")],
+    "setdiff1d": [
+        ("1d", lambda ns: np.setdiff1d(ns.m, ns.m[:2]), "m"),
+        ("mismatch", lambda ns: np.setdiff1d(ns.m, ns.s), "DimensionMismatchError"),
+    ],
+    "intersect1d": [
+        ("1d", lambda ns: np.intersect1d(ns.m, ns.m), "m"),
+        (
+            "indices",
+            lambda ns: np.intersect1d(ns.m, ns.m, return_indices=True),
+            ("m", "plain", "plain"),
+        ),
+    ],
     # ---- UNIT_FREE ------------------------------------------------------------------
     "argmax": [
         ("1d", lambda ns: np.argmax(ns.m), "plain"),

@@ -278,3 +278,106 @@ def _unique_all(function, as_quantity, /, x):
     result = np.unique_all(np.asarray(x))
     values = as_quantity(result.values, _dim(x))
     return type(result)(values, result.indices, result.inverse_indices, result.counts)
+
+
+# ------------------------------------------------------------------------------
+# HANDLED: selecting values, writing values, set operations
+# ------------------------------------------------------------------------------
+
+
+@implements(np.where)
+def _where(function, as_quantity, /, condition, *values):
+    if not values:  # np.where(condition) is np.nonzero(condition): indices
+        return np.where(np.asarray(condition))
+    dim = _shared_dimensions(values, function)
+    return as_quantity(np.where(np.asarray(condition), *strip_units(values)), dim)
+
+
+@implements(np.select)
+def _select(function, as_quantity, /, condlist, choicelist, default=0):
+    choicelist = list(choicelist)
+    dim = _shared_dimensions([*choicelist, default], function)
+    result = np.select(strip_units(list(condlist)), strip_units(choicelist), np.asarray(default))
+    return as_quantity(result, dim)
+
+
+@implements(np.choose)
+def _choose(function, as_quantity, /, a, choices, out=None, mode="raise"):
+    choices = list(choices)
+    dim = _shared_dimensions(choices, function)
+    raw_out = None if out is None else np.asarray(out)
+    result = np.choose(np.asarray(a), strip_units(choices), out=raw_out, mode=mode)
+    return _with_output(as_quantity, result, dim, out)
+
+
+@implements(np.copyto)
+def _copyto(function, as_quantity, /, dst, src, casting="same_kind", where=True):
+    # A source with dimensions must match the destination. Plain numbers are taken
+    # as values in base SI units: NumPy's own functions (np.full_like, the
+    # nan-functions, ...) fill arrays this way.
+    if _dim(src) is not DIMENSIONLESS:
+        _shared_dimensions([dst, src], function)
+    np.copyto(np.asarray(dst), np.asarray(src), casting=casting, where=strip_units(where))
+
+
+def _check_values_fit(array, values, function):
+    """Values written into ``array`` need its dimensions, as for ``array[i] = values``."""
+    fail_for_dimension_mismatch(
+        array,
+        values,
+        f"numpy.{function.__name__}: the values need the dimensions of the array",
+    )
+
+
+@implements(np.place)
+def _place(function, as_quantity, /, arr, mask, vals):
+    _check_values_fit(arr, vals, function)
+    np.place(np.asarray(arr), np.asarray(mask), np.asarray(vals))
+
+
+@implements(np.putmask)
+def _putmask(function, as_quantity, /, a, mask, values):
+    _check_values_fit(a, values, function)
+    np.putmask(np.asarray(a), np.asarray(mask), np.asarray(values))
+
+
+@implements(np.put_along_axis)
+def _put_along_axis(function, as_quantity, /, arr, indices, values, axis):
+    _check_values_fit(arr, values, function)
+    np.put_along_axis(np.asarray(arr), np.asarray(indices), np.asarray(values), axis)
+
+
+@implements(np.fill_diagonal)
+def _fill_diagonal(function, as_quantity, /, a, val, wrap=False):
+    _check_values_fit(a, val, function)
+    np.fill_diagonal(np.asarray(a), np.asarray(val), wrap=wrap)
+
+
+@implements(np.isin)
+def _isin(function, as_quantity, /, element, test_elements, *args, **kwargs):
+    _shared_dimensions([element, test_elements], function)
+    return np.isin(np.asarray(element), np.asarray(test_elements), *args, **kwargs)
+
+
+@implements(np.digitize)
+def _digitize(function, as_quantity, /, x, bins, right=False):
+    _shared_dimensions([x, bins], function)
+    return np.digitize(np.asarray(x), np.asarray(bins), right=right)
+
+
+@implements(np.union1d, np.setxor1d, np.setdiff1d)
+def _set_operation(function, as_quantity, /, ar1, ar2, *args, **kwargs):
+    dim = _shared_dimensions([ar1, ar2], function)
+    return as_quantity(function(np.asarray(ar1), np.asarray(ar2), *args, **kwargs), dim)
+
+
+@implements(np.intersect1d)
+def _intersect1d(function, as_quantity, /, ar1, ar2, assume_unique=False, return_indices=False):
+    dim = _shared_dimensions([ar1, ar2], function)
+    result = np.intersect1d(
+        np.asarray(ar1), np.asarray(ar2), assume_unique=assume_unique, return_indices=return_indices
+    )
+    if return_indices:
+        values, *indices = result
+        return (as_quantity(values, dim), *indices)
+    return as_quantity(result, dim)
