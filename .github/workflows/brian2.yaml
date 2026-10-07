@@ -19,6 +19,7 @@ jobs:
       with:
         repository: brian-team/brian2
         path: brian2
+        fetch-depth: 0  # Brian2 also gets its version number from its git tags
 
     - name: Set up Python
       uses: actions/setup-python@v5
