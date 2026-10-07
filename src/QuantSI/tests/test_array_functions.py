@@ -22,19 +22,22 @@ from QuantSI import DimensionMismatchError, _array_functions
 from QuantSI.allunits import metre, second
 from QuantSI.fundamentalunits import DIMENSIONLESS, Quantity
 
+# Dimension arithmetic, not unit arithmetic: combining units (metre**2) would
+# register display units while the tests are being collected.
+M, S = metre.dim, second.dim
 DIMS = {
-    "m": metre.dim,
-    "m2": (metre**2).dim,
-    "m3": (metre**3).dim,
-    "m4": (metre**4).dim,
-    "m s": (metre * second).dim,
-    "s": second.dim,
-    "1/m": (1 / metre).dim,
-    "s/m": (second / metre).dim,
-    "m/s": (metre / second).dim,
-    "m^0.5": (metre**0.5).dim,
-    "1/m2": (1 / metre**2).dim,
-    "1/(m s)": (1 / (metre * second)).dim,
+    "m": M,
+    "m2": M**2,
+    "m3": M**3,
+    "m4": M**4,
+    "m s": M * S,
+    "s": S,
+    "1/m": M**-1,
+    "s/m": S / M,
+    "m/s": M / S,
+    "m^0.5": M**0.5,
+    "1/m2": M**-2,
+    "1/(m s)": (M * S) ** -1,
     "1": DIMENSIONLESS,
 }
 EXCEPTIONS = {"TypeError": TypeError, "DimensionMismatchError": DimensionMismatchError}
