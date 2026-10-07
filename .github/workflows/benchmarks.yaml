@@ -26,6 +26,10 @@ jobs:
       run: |
         pdm run pytest src/QuantSI/tests/benchmarks --benchmark-enable --benchmark-only --benchmark-json=benchmarks.json
 
+    - name: Check overhead against plain NumPy
+      run: |
+        pdm run pytest -m perf_guard -v
+
     - name: Upload results
       uses: actions/upload-artifact@v4
       with:

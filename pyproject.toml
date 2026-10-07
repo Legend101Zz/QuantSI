@@ -62,6 +62,11 @@ addopts = [
     "--strict-config",
     "--doctest-modules",
     "--benchmark-disable",  # run each benchmark once, as a plain test
+    "-m",
+    "not perf_guard",  # run explicitly with: pytest -m perf_guard
+]
+markers = [
+    "perf_guard: compares QuantSI overhead with plain NumPy (select with -m perf_guard)",
 ]
 xfail_strict = true
 # Treat warnings as errors, so that deprecations show up early. A test that
