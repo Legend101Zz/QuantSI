@@ -32,7 +32,7 @@ class DimensionMismatchError(Exception):
         return f"{self.__class__.__name__}({self.desc!r}, {', '.join(dims_repr)})"
 
     def __str__(self):
-        from .fundamentalunits import get_unit_for_display
+        from ._registry import get_unit_for_display
 
         s = self.desc
         if len(self.dims) == 0:
