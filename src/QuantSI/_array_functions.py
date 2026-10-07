@@ -22,6 +22,8 @@ that it belongs there.
 
 import numpy as np
 
+from ._dimension import DIMENSIONLESS, fail_for_dimension_mismatch, get_dimensions
+
 SUBCLASS_SAFE = set()
 UNIT_FREE = set()
 UNSUPPORTED = {}  # function -> why it is refused
@@ -31,8 +33,11 @@ HANDLED = {}  # function -> implementation(wrap, *args, **kwargs)
 def implements(*functions):
     """Register the decorated function as QuantSI's implementation of ``functions``.
 
-    The implementation receives ``wrap(values, dim)``, which attaches dimensions
-    to a plain result, followed by the arguments of the NumPy call.
+    The implementation is called as ``implementation(function, as_quantity, *args,
+    **kwargs)``: the NumPy function that was called, a callable
+    ``as_quantity(values, dim)`` that attaches dimensions to a plain result, and the
+    arguments of the NumPy call. (Declare the first two positional-only, ``/``, so
+    that they cannot clash with NumPy's own parameter names.)
     """
 
     def register(implementation):
@@ -154,3 +159,122 @@ UNSUPPORTED.update(
         np.linalg.slogdet: "the logarithm of a determinant with dimensions is undefined",
     }
 )
+
+
+# ------------------------------------------------------------------------------
+# Helpers for the implementations
+# ------------------------------------------------------------------------------
+
+
+def _dim(obj):
+    """get_dimensions(obj), without the cost of an exception for plain numbers."""
+    dim = getattr(obj, "dim", None)
+    return get_dimensions(obj) if dim is None else dim
+
+
+def _shared_dimensions(values, function):
+    """The dimensions of ``values``, which must agree (a plain 0 matches anything)."""
+    values = list(values)
+    for value in values[1:]:
+        fail_for_dimension_mismatch(
+            values[0], value, f"numpy.{function.__name__} needs values with the same dimensions"
+        )
+    for value in values:
+        dim = _dim(value)
+        if dim is not DIMENSIONLESS:
+            return dim
+    return DIMENSIONLESS
+
+
+def _leaves(nested):
+    """The arrays inside the nested lists that np.block accepts."""
+    if isinstance(nested, list):
+        for item in nested:
+            yield from _leaves(item)
+    else:
+        yield nested
+
+
+def _with_output(as_quantity, result, dim, out):
+    """Attach ``dim`` to a result; with ``out=``, relabel and return the output."""
+    if out is not None and hasattr(out, "dim"):
+        out.dim = dim
+        return out
+    return as_quantity(result, dim)
+
+
+# ------------------------------------------------------------------------------
+# HANDLED: joining, stacking and reshaping
+# ------------------------------------------------------------------------------
+
+
+@implements(np.concatenate, np.stack)
+def _concatenate(function, as_quantity, /, arrays, *args, out=None, **kwargs):
+    arrays = list(arrays)
+    dim = _shared_dimensions(arrays, function)
+    raw_out = None if out is None else np.asarray(out)
+    result = function(strip_units(arrays), *args, out=raw_out, **kwargs)
+    return _with_output(as_quantity, result, dim, out)
+
+
+@implements(np.hstack, np.vstack, np.dstack, np.column_stack)
+def _stack(function, as_quantity, /, arrays, *args, **kwargs):
+    arrays = list(arrays)
+    dim = _shared_dimensions(arrays, function)
+    return as_quantity(function(strip_units(arrays), *args, **kwargs), dim)
+
+
+@implements(np.block)
+def _block(function, as_quantity, /, arrays):
+    dim = _shared_dimensions(_leaves(arrays), function)
+    return as_quantity(np.block(strip_units(arrays)), dim)
+
+
+@implements(np.append)
+def _append(function, as_quantity, /, arr, values, axis=None):
+    dim = _shared_dimensions([arr, values], function)
+    return as_quantity(np.append(np.asarray(arr), np.asarray(values), axis=axis), dim)
+
+
+@implements(np.insert)
+def _insert(function, as_quantity, /, arr, obj, values, axis=None):
+    dim = _shared_dimensions([arr, values], function)
+    return as_quantity(np.insert(np.asarray(arr), obj, np.asarray(values), axis=axis), dim)
+
+
+@implements(np.pad)
+def _pad(function, as_quantity, /, array, pad_width, mode="constant", **kwargs):
+    for name in ("constant_values", "end_values"):
+        if name in kwargs:
+            _shared_dimensions([array, kwargs[name]], function)
+    result = np.pad(np.asarray(array), pad_width, mode, **strip_units(kwargs))
+    return as_quantity(result, _dim(array))
+
+
+@implements(np.broadcast_arrays)
+def _broadcast_arrays(function, as_quantity, /, *args, subok=False):
+    results = np.broadcast_arrays(*strip_units(args))
+    return tuple(as_quantity(r, _dim(a)) for r, a in zip(results, args, strict=True))
+
+
+@implements(
+    np.broadcast_to,
+    np.copy,
+    np.resize,
+    np.tril,
+    np.triu,
+    np.sort_complex,
+    np.lib.stride_tricks.sliding_window_view,
+)
+def _same_dimensions(function, as_quantity, /, array, *args, **kwargs):
+    # NumPy's implementation is right except that it returns a plain array
+    # (np.copy and np.broadcast_to default to subok=False, for example).
+    kwargs.pop("subok", None)
+    return as_quantity(function(np.asarray(array), *args, **kwargs), _dim(array))
+
+
+@implements(np.unique_all)
+def _unique_all(function, as_quantity, /, x):
+    result = np.unique_all(np.asarray(x))
+    values = as_quantity(result.values, _dim(x))
+    return type(result)(values, result.indices, result.inverse_indices, result.counts)

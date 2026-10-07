@@ -77,8 +77,9 @@ class UnitRegistry:
                     slices.append((slice(0, edgeitems), slice(-edgeitems, None)))
                 else:
                     slices.append((slice(None),))
+            values = np.asarray(x)  # plain numbers: the display unit is chosen by value
             x_flat = np.hstack(
-                [x[use_slices].flatten() for use_slices in itertools.product(*slices)]
+                [values[use_slices].flatten() for use_slices in itertools.product(*slices)]
             )
         else:
             x_flat = np.asarray(x).flatten()

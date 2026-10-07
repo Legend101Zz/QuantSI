@@ -184,6 +184,58 @@ CASES = {
     "linalg.matmul": [("2d", lambda ns: np.linalg.matmul(ns.M, ns.M), "m2")],
     "linalg.matrix_power": [("2d", lambda ns: np.linalg.matrix_power(ns.M, 2), "m2")],
     "linalg.vecdot": [("1d", lambda ns: np.linalg.vecdot(ns.m, ns.s), "m s")],
+    # ---- HANDLED: joining, stacking, reshaping -----------------------------------------
+    "concatenate": [
+        ("1d", lambda ns: np.concatenate([ns.m, ns.m]), "m"),
+        ("zeros", lambda ns: np.concatenate([ns.m, np.zeros(2)]), "m"),
+        ("mismatch", lambda ns: np.concatenate([ns.m, ns.s]), "DimensionMismatchError"),
+        ("out", lambda ns: np.concatenate([ns.m, ns.m], out=np.zeros(8) * ns.second), "m"),
+    ],
+    "stack": [
+        ("1d", lambda ns: np.stack([ns.m, ns.m]), "m"),
+        ("mismatch", lambda ns: np.stack([ns.m, ns.s]), "DimensionMismatchError"),
+    ],
+    "hstack": [
+        ("1d", lambda ns: np.hstack([ns.m, ns.m]), "m"),
+        ("mismatch", lambda ns: np.hstack([ns.m, ns.s]), "DimensionMismatchError"),
+    ],
+    "vstack": [("1d", lambda ns: np.vstack([ns.m, ns.m]), "m")],
+    "dstack": [("1d", lambda ns: np.dstack([ns.m, ns.m]), "m")],
+    "column_stack": [("1d", lambda ns: np.column_stack([ns.m, ns.m]), "m")],
+    "block": [
+        ("1d", lambda ns: np.block([ns.m, ns.m]), "m"),
+        ("nested", lambda ns: np.block([[ns.M, ns.M], [ns.M, ns.M]]), "m"),
+        ("mismatch", lambda ns: np.block([ns.m, ns.s]), "DimensionMismatchError"),
+    ],
+    "append": [
+        ("1d", lambda ns: np.append(ns.m, ns.m), "m"),
+        ("mismatch", lambda ns: np.append(ns.m, ns.s), "DimensionMismatchError"),
+    ],
+    "insert": [
+        ("1d", lambda ns: np.insert(ns.m, 1, 5 * ns.unit), "m"),
+        ("mismatch", lambda ns: np.insert(ns.m, 1, 5 * ns.second), "DimensionMismatchError"),
+    ],
+    "pad": [
+        ("zeros", lambda ns: np.pad(ns.m, 1), "m"),
+        ("constant", lambda ns: np.pad(ns.m, 1, constant_values=7 * ns.unit), "m"),
+        ("edge", lambda ns: np.pad(ns.m, 1, mode="edge"), "m"),
+        (
+            "mismatch",
+            lambda ns: np.pad(ns.m, 1, constant_values=7 * ns.second),
+            "DimensionMismatchError",
+        ),
+    ],
+    "broadcast_arrays": [("1d", lambda ns: np.broadcast_arrays(ns.m, ns.s), ("m", "s"))],
+    "broadcast_to": [("1d", lambda ns: np.broadcast_to(ns.m, (2, 4)), "m")],
+    "copy": [("1d", lambda ns: np.copy(ns.m), "m")],
+    "resize": [("1d", lambda ns: np.resize(ns.m, 6), "m")],
+    "tril": [("2d", lambda ns: np.tril(ns.M), "m")],
+    "triu": [("2d", lambda ns: np.triu(ns.M), "m")],
+    "sort_complex": [("1d", lambda ns: np.sort_complex(ns.m), "m")],
+    "lib.stride_tricks.sliding_window_view": [
+        ("1d", lambda ns: np.lib.stride_tricks.sliding_window_view(ns.m, 2), "m")
+    ],
+    "unique_all": [("1d", lambda ns: np.unique_all(ns.m), ("m", "plain", "plain", "plain"))],
     # ---- UNIT_FREE ------------------------------------------------------------------
     "argmax": [
         ("1d", lambda ns: np.argmax(ns.m), "plain"),

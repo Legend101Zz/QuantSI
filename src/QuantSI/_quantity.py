@@ -296,7 +296,7 @@ class Quantity(np.ndarray):
             return NotImplemented  # let another array type (dask, ...) handle it
         handler = HANDLED.get(func)
         if handler is not None:
-            return handler(_new_quantity, *args, **kwargs)
+            return handler(func, _new_quantity, *args, **kwargs)
         if func in UNIT_FREE:
             return func(*strip_units(args), **strip_units(kwargs))
         if func in UNSUPPORTED:
