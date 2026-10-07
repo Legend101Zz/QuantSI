@@ -27,6 +27,7 @@ LAYERS = [
     "_formatting",
     "_parsing",
     "_decorators",
+    "_wrappers",
 ]
 
 

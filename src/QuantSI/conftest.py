@@ -1,24 +1,43 @@
 import contextlib
+import importlib
 
 import pytest
 
 
 def pytest_collection_modifyitems(config, items):
-    # List of function names whose doctests should be skipped
-    functions_to_skip = {
-        "Quantity.fill",
-        "Quantity.trace",
-    }
+    """Skip the doctests of objects marked ``_do_not_run_doctests``.
 
-    for item in items:
-        function_name = item.location[2]  # The third element often contains the name in doctests
-        # Skip specific functions' doctests
-        if any(fn in function_name for fn in functions_to_skip):
-            item.add_marker(
-                pytest.mark.skip(
-                    reason="Skipping doctest for specific function due to known documentation issues"
-                )
-            )
+    Such objects (e.g. Quantity.fill, the wrappers in unitsafefunctions) reuse a
+    NumPy docstring, whose examples are about NumPy arrays. Brian2 uses the same
+    marker.
+    """
+
+    # (Deselected rather than skipped: their docstrings have no line in our files,
+    # which pytest needs to report a skip.)
+    def marked(item):
+        doctest = getattr(item, "dtest", None)
+        return doctest is not None and getattr(
+            _resolve(doctest.name), "_do_not_run_doctests", False
+        )
+
+    deselected = [item for item in items if marked(item)]
+    if deselected:
+        items[:] = [item for item in items if not marked(item)]
+        config.hook.pytest_deselected(items=deselected)
+
+
+def _resolve(dotted_name):
+    """The object called ``dotted_name`` (module path, then attributes), or None."""
+    parts = dotted_name.split(".")
+    for split in range(len(parts), 0, -1):
+        try:
+            obj = importlib.import_module(".".join(parts[:split]))
+        except ImportError:
+            continue
+        for attribute in parts[split:]:
+            obj = getattr(obj, attribute, None)
+        return obj
+    return None
 
 
 @contextlib.contextmanager

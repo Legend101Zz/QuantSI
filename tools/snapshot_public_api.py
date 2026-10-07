@@ -19,6 +19,7 @@ MODULES = [
     "QuantSI.allunits",
     "QuantSI.stdunits",
     "QuantSI.constants",
+    "QuantSI.unitsafefunctions",
 ]
 
 #: Private names we still have to keep, because Brian2 imports them from

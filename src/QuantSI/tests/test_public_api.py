@@ -25,6 +25,7 @@ PUBLIC_MODULES = {
     "QuantSI.constants",
     "QuantSI.fundamentalunits",
     "QuantSI.stdunits",
+    "QuantSI.unitsafefunctions",
 }
 NOT_API = {"QuantSI.conftest", "QuantSI.tests"}
 
