@@ -23,6 +23,7 @@ that it belongs there.
 import numpy as np
 
 from ._dimension import DIMENSIONLESS, fail_for_dimension_mismatch, get_dimensions
+from ._errors import DimensionMismatchError
 
 SUBCLASS_SAFE = set()
 UNIT_FREE = set()
@@ -381,3 +382,186 @@ def _intersect1d(function, as_quantity, /, ar1, ar2, assume_unique=False, return
         values, *indices = result
         return (as_quantity(values, dim), *indices)
     return as_quantity(result, dim)
+
+
+# ------------------------------------------------------------------------------
+# HANDLED: comparing and summarising
+# ------------------------------------------------------------------------------
+
+
+@implements(np.isclose, np.allclose)
+def _isclose(function, as_quantity, /, a, b, rtol=1e-05, atol=1e-08, equal_nan=False):
+    _shared_dimensions([a, b], function)
+    if _dim(atol) is not DIMENSIONLESS:
+        _shared_dimensions([a, atol], function)
+    # A plain atol is a value in base SI units, like every plain value QuantSI sees.
+    return function(
+        np.asarray(a), np.asarray(b), rtol=rtol, atol=np.asarray(atol), equal_nan=equal_nan
+    )
+
+
+@implements(np.array_equal, np.array_equiv)
+def _array_equal(function, as_quantity, /, a1, a2, *args, **kwargs):
+    try:
+        _shared_dimensions([a1, a2], function)
+    except DimensionMismatchError:
+        return False  # quantities of different kinds are never equal
+    return function(np.asarray(a1), np.asarray(a2), *args, **kwargs)
+
+
+@implements(np.cov)
+def _cov(function, as_quantity, /, m, y=None, *args, **kwargs):
+    dim = _shared_dimensions([m] if y is None else [m, y], function)
+    y = None if y is None else np.asarray(y)
+    return as_quantity(np.cov(np.asarray(m), y, *args, **strip_units(kwargs)), dim**2)
+
+
+@implements(np.bincount)
+def _bincount(function, as_quantity, /, x, weights=None, minlength=0):
+    fail_for_dimension_mismatch(x, error_message="numpy.bincount counts integers, not quantities")
+    result = np.bincount(np.asarray(x), weights=strip_units(weights), minlength=minlength)
+    return result if weights is None else as_quantity(result, _dim(weights))
+
+
+def _check_bins(a, bins, range, function):
+    if not isinstance(bins, (int, np.integer, str)):
+        _shared_dimensions([a, bins], function)
+    if range is not None:
+        _shared_dimensions([a, *range], function)
+
+
+def _histogram_values_dim(sample_dims, density, weights):
+    """Counts are plain, sums of weights have the weights' dimensions, and
+    densities (normalised to integrate to one) the inverse of the samples'."""
+    if density:
+        dim = DIMENSIONLESS
+        for sample_dim in sample_dims:
+            dim = dim / sample_dim
+        return dim
+    return DIMENSIONLESS if weights is None else _dim(weights)
+
+
+@implements(np.histogram)
+def _histogram(function, as_quantity, /, a, bins=10, range=None, density=None, weights=None):
+    _check_bins(a, bins, range, function)
+    hist, edges = np.histogram(
+        np.asarray(a),
+        bins=strip_units(bins),
+        range=strip_units(range),
+        density=density,
+        weights=strip_units(weights),
+    )
+    dim = _dim(a)
+    return as_quantity(hist, _histogram_values_dim([dim], density, weights)), as_quantity(
+        edges, dim
+    )
+
+
+@implements(np.histogram_bin_edges)
+def _histogram_bin_edges(function, as_quantity, /, a, bins=10, range=None, weights=None):
+    _check_bins(a, bins, range, function)
+    edges = np.histogram_bin_edges(
+        np.asarray(a),
+        bins=strip_units(bins),
+        range=strip_units(range),
+        weights=strip_units(weights),
+    )
+    return as_quantity(edges, _dim(a))
+
+
+@implements(np.histogram2d)
+def _histogram2d(function, as_quantity, /, x, y, bins=10, range=None, density=None, weights=None):
+    if isinstance(bins, (list, tuple)) and len(bins) == 2:
+        for axis_bins, values in zip(bins, (x, y), strict=True):
+            _check_bins(values, axis_bins, None, function)
+    else:
+        _check_bins(x, bins, None, function)
+        _check_bins(y, bins, None, function)
+    if range is not None:
+        for axis_range, values in zip(range, (x, y), strict=True):
+            if axis_range is not None:
+                _shared_dimensions([values, *axis_range], function)
+    hist, x_edges, y_edges = np.histogram2d(
+        np.asarray(x),
+        np.asarray(y),
+        bins=strip_units(bins),
+        range=strip_units(range),
+        density=density,
+        weights=strip_units(weights),
+    )
+    x_dim, y_dim = _dim(x), _dim(y)
+    return (
+        as_quantity(hist, _histogram_values_dim([x_dim, y_dim], density, weights)),
+        as_quantity(x_edges, x_dim),
+        as_quantity(y_edges, y_dim),
+    )
+
+
+@implements(np.histogramdd)
+def _histogramdd(function, as_quantity, /, sample, bins=10, range=None, density=None, weights=None):
+    if isinstance(sample, (list, tuple)):
+        dims = [_dim(axis_sample) for axis_sample in sample]
+    else:  # an (N, D) array: one dimension for all D axes
+        dims = [_dim(sample)] * (np.shape(sample)[-1] if np.ndim(sample) > 1 else 1)
+    hist, edges = np.histogramdd(
+        strip_units(sample),
+        bins=strip_units(bins),
+        range=strip_units(range),
+        density=density,
+        weights=strip_units(weights),
+    )
+    edges = tuple(as_quantity(e, d) for e, d in zip(edges, dims, strict=True))
+    return as_quantity(hist, _histogram_values_dim(dims, density, weights)), edges
+
+
+@implements(np.interp)
+def _interp(function, as_quantity, /, x, xp, fp, left=None, right=None, period=None):
+    _shared_dimensions([x, xp] + ([] if period is None else [period]), function)
+    dim = _shared_dimensions([fp] + [v for v in (left, right) if v is not None], function)
+    result = np.interp(
+        np.asarray(x),
+        np.asarray(xp),
+        np.asarray(fp),
+        left=strip_units(left),
+        right=strip_units(right),
+        period=strip_units(period),
+    )
+    return as_quantity(result, dim)
+
+
+@implements(np.geomspace)
+def _geomspace(function, as_quantity, /, start, stop, *args, **kwargs):
+    dim = _shared_dimensions([start, stop], function)
+    return as_quantity(np.geomspace(np.asarray(start), np.asarray(stop), *args, **kwargs), dim)
+
+
+@implements(np.gradient)
+def _gradient(function, as_quantity, /, f, *varargs, axis=None, edge_order=1):
+    result = np.gradient(np.asarray(f), *strip_units(varargs), axis=axis, edge_order=edge_order)
+    # The spacing: none (unit steps), one for all axes, or one per axis.
+    n_results = len(result) if isinstance(result, (tuple, list)) else 1
+    if not varargs:
+        spacing_dims = [DIMENSIONLESS] * n_results
+    elif len(varargs) == 1:
+        spacing_dims = [_dim(varargs[0])] * n_results
+    else:
+        spacing_dims = [_dim(spacing) for spacing in varargs]
+    f_dim = _dim(f)
+    if isinstance(result, (tuple, list)):
+        return type(result)(
+            as_quantity(r, f_dim / d) for r, d in zip(result, spacing_dims, strict=True)
+        )
+    return as_quantity(result, f_dim / spacing_dims[0])
+
+
+@implements(np.cumprod, np.nancumprod)
+def _cumprod(function, as_quantity, /, a, *args, **kwargs):
+    # Quantity.cumprod refuses quantities with dimensions, but NumPy calls methods
+    # through a wrapper that catches TypeError and retries on the plain values,
+    # which would silently give a wrong result. So refuse here.
+    if _dim(a) is not DIMENSIONLESS:
+        raise TypeError(
+            f"numpy.{function.__name__} is not supported for quantities with dimensions: "
+            "the partial products would have different dimensions."
+        )
+    return function(np.asarray(a), *args, **kwargs)

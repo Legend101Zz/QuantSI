@@ -32,6 +32,8 @@ DIMS = {
     "s/m": (second / metre).dim,
     "m/s": (metre / second).dim,
     "m^0.5": (metre**0.5).dim,
+    "1/m2": (1 / metre**2).dim,
+    "1/(m s)": (1 / (metre * second)).dim,
     "1": DIMENSIONLESS,
 }
 EXCEPTIONS = {"TypeError": TypeError, "DimensionMismatchError": DimensionMismatchError}
@@ -326,6 +328,76 @@ CASES = {
             ("m", "plain", "plain"),
         ),
     ],
+    # ---- HANDLED: comparing and summarising ---------------------------------------------
+    "allclose": [
+        ("same", lambda ns: np.allclose(ns.m, ns.m), "plain"),
+        ("atol", lambda ns: np.allclose(ns.m, ns.m + 1e-3 * ns.unit, atol=1e-2 * ns.unit), "plain"),
+        ("mismatch", lambda ns: np.allclose(ns.m, ns.s), "DimensionMismatchError"),
+        (
+            "atol mismatch",
+            lambda ns: np.allclose(ns.m, ns.m, atol=1 * ns.second),
+            "DimensionMismatchError",
+        ),
+    ],
+    "isclose": [
+        ("same", lambda ns: np.isclose(ns.m, ns.m), "plain"),
+        ("mismatch", lambda ns: np.isclose(ns.m, ns.s), "DimensionMismatchError"),
+    ],
+    "array_equal": [("same", lambda ns: np.array_equal(ns.m, ns.m), "plain")],
+    "array_equiv": [("same", lambda ns: np.array_equiv(ns.m, ns.m), "plain")],
+    "cov": [
+        ("1d", lambda ns: np.cov(ns.m), "m2"),
+        ("mismatch", lambda ns: np.cov(ns.m, ns.s), "DimensionMismatchError"),
+    ],
+    "bincount": [
+        ("counts", lambda ns: np.bincount(ns.i), "plain"),
+        ("weights", lambda ns: np.bincount(ns.i, weights=ns.m), "m"),
+        ("quantity input", lambda ns: np.bincount(ns.m), "DimensionMismatchError"),
+    ],
+    "histogram": [
+        ("counts", lambda ns: np.histogram(ns.m, bins=2), ("plain", "m")),
+        ("weights", lambda ns: np.histogram(ns.m, bins=2, weights=ns.s), ("s", "m")),
+        ("density", lambda ns: np.histogram(ns.m, bins=2, density=True), ("1/m", "m")),
+        ("bin edges", lambda ns: np.histogram(ns.m, bins=ns.m), ("plain", "m")),
+        ("mismatch", lambda ns: np.histogram(ns.m, bins=ns.s), "DimensionMismatchError"),
+    ],
+    "histogram_bin_edges": [("1d", lambda ns: np.histogram_bin_edges(ns.m, bins=2), "m")],
+    "histogram2d": [
+        ("counts", lambda ns: np.histogram2d(ns.m, ns.s, bins=2), ("plain", "m", "s")),
+        (
+            "density",
+            lambda ns: np.histogram2d(ns.m, ns.s, bins=2, density=True),
+            ("1/(m s)", "m", "s"),
+        ),
+    ],
+    "histogramdd": [
+        ("counts", lambda ns: np.histogramdd(ns.m2.T, bins=2), ("plain", ("m", "m"))),
+        ("density", lambda ns: np.histogramdd(ns.m2.T, bins=2, density=True), ("1/m2", ("m", "m"))),
+    ],
+    "interp": [
+        ("1d", lambda ns: np.interp(ns.m, ns.m, ns.s), "s"),
+        ("mismatch", lambda ns: np.interp(ns.m, ns.s, ns.s), "DimensionMismatchError"),
+        (
+            "left",
+            lambda ns: np.interp(ns.m, ns.m, ns.s, left=1 * ns.unit),
+            "DimensionMismatchError",
+        ),
+    ],
+    "geomspace": [
+        ("1d", lambda ns: np.geomspace(1 * ns.unit, 4 * ns.unit, 3), "m"),
+        (
+            "mismatch",
+            lambda ns: np.geomspace(1 * ns.unit, 4 * ns.second, 3),
+            "DimensionMismatchError",
+        ),
+    ],
+    "gradient": [
+        ("1d", lambda ns: np.gradient(ns.m), "m"),
+        ("spacing", lambda ns: np.gradient(ns.m, ns.s), "m/s"),
+        ("2d", lambda ns: np.gradient(ns.m2), ("m", "m")),
+    ],
+    "cumprod": [("with dimensions", lambda ns: np.cumprod(ns.M * ns.M), "TypeError")],
+    "nancumprod": [("with dimensions", lambda ns: np.nancumprod(ns.m * ns.m), "TypeError")],
     # ---- UNIT_FREE ------------------------------------------------------------------
     "argmax": [
         ("1d", lambda ns: np.argmax(ns.m), "plain"),
@@ -498,3 +570,8 @@ def test_buckets_do_not_overlap():
     for i, first in enumerate(buckets):
         for second_bucket in buckets[i + 1 :]:
             assert not first & second_bucket
+
+
+def test_quantities_of_different_kinds_are_never_equal():
+    assert not np.array_equal(np.ones(3) * metre, np.ones(3) * second)
+    assert not np.array_equiv(np.ones(3) * metre, np.ones(3) * second)
