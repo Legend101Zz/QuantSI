@@ -13,6 +13,14 @@ from warnings import warn
 import numpy as np
 from numpy.exceptions import VisibleDeprecationWarning
 
+from ._array_functions import (
+    HANDLED,
+    SUBCLASS_SAFE,
+    UNIT_FREE,
+    UNSUPPORTED,
+    strip_units,
+    unsupported_message,
+)
 from ._dimension import (
     DIMENSIONLESS,
     Dimension,
@@ -279,6 +287,22 @@ class Quantity(np.ndarray):
             return result if dim is None else _new_quantity(result, dim)
         out.dim = DIMENSIONLESS if dim is None else dim
         return out
+
+    def __array_function__(self, func, types, args, kwargs):
+        # NEP 18: called for NumPy functions such as np.concatenate; see _array_functions.
+        if func in SUBCLASS_SAFE:
+            return super().__array_function__(func, types, args, kwargs)
+        if not all(issubclass(t, np.ndarray) for t in types):
+            return NotImplemented  # let another array type (dask, ...) handle it
+        handler = HANDLED.get(func)
+        if handler is not None:
+            return handler(_new_quantity, *args, **kwargs)
+        if func in UNIT_FREE:
+            return func(*strip_units(args), **strip_units(kwargs))
+        if func in UNSUPPORTED:
+            raise TypeError(unsupported_message(func))
+        # Not reviewed yet: NumPy's own implementation, as before.
+        return super().__array_function__(func, types, args, kwargs)
 
     def __deepcopy__(self, memo):
         return Quantity(self, copy=True)

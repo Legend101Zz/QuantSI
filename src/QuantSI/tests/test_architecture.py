@@ -21,6 +21,7 @@ LAYERS = [
     "_dimension",
     "_registry",
     "_ufuncs",
+    "_array_functions",
     "_quantity",
     "_unit",
     "_formatting",
