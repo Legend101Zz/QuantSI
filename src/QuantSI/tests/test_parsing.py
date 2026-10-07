@@ -3,8 +3,9 @@
 import pytest
 
 from QuantSI._errors import QuantityParseError
-from QuantSI._parsing import MAX_LENGTH, parse_quantity
+from QuantSI._parsing import MAX_LENGTH, parse_dimensions, parse_quantity
 from QuantSI.allunits import amp, metre, msecond, mvolt, second, siemens, volt
+from QuantSI.fundamentalunits import DIMENSIONLESS
 from QuantSI.stdunits import cm, mV
 
 
@@ -77,3 +78,26 @@ def test_custom_namespace():
     assert parse_quantity("2 * stride", namespace={"stride": metre}) == 2 * metre
     with pytest.raises(QuantityParseError, match="not a known unit"):
         parse_quantity("mV", namespace={})
+
+
+@pytest.mark.parametrize(
+    ("text", "suggestion"),
+    [("mv * 3", "Did you mean mV"), ("volts", "volt"), ("Siemens", "siemens")],
+)
+def test_unknown_names_get_suggestions(text, suggestion):
+    with pytest.raises(QuantityParseError, match=suggestion):
+        parse_quantity(text)
+
+
+def test_no_suggestion_for_nonsense():
+    with pytest.raises(QuantityParseError) as error:
+        parse_quantity("xyzzy")
+    assert "Did you mean" not in str(error.value)
+
+
+def test_parse_dimensions():
+    assert parse_dimensions("siemens / metre ** 2") is (siemens / metre**2).dim
+    assert parse_dimensions("3 * mV") is volt.dim
+    assert parse_dimensions("2.5") is DIMENSIONLESS
+    with pytest.raises(QuantityParseError):
+        parse_dimensions("volt.dim")

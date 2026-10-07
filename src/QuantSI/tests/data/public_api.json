@@ -167,6 +167,7 @@
   "pA",
   "pF",
   "pamp",
+  "parse_dimensions",
   "parse_quantity",
   "pascal",
   "pcoulomb",

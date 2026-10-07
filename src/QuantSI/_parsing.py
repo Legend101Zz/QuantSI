@@ -9,8 +9,10 @@ anything is evaluated, so nothing in the text is ever executed.
 """
 
 import ast
+import difflib
 import functools
 
+from ._dimension import get_dimensions
 from ._errors import QuantityParseError
 
 MAX_LENGTH = 500  #: characters
@@ -57,6 +59,27 @@ def parse_quantity(text, namespace=None):
     return _evaluate(tree.body, names)
 
 
+def parse_dimensions(text, namespace=None):
+    """The dimensions of a quantity written as text, as the interned `Dimension`.
+
+    >>> from QuantSI import parse_dimensions
+    >>> parse_dimensions("50 * mV")
+    metre ** 2 * kilogram * second ** -3 * amp ** -1
+    """
+    return get_dimensions(parse_quantity(text, namespace))
+
+
+def _suggest(name, names):
+    """' Did you mean ...?' with up to three similar names (ignoring case)."""
+    by_lower_case = {}
+    for known in names:
+        by_lower_case.setdefault(known.lower(), known)
+    close = difflib.get_close_matches(name.lower(), by_lower_case, n=3)
+    if not close:
+        return ""
+    return " Did you mean " + ", ".join(by_lower_case[c] for c in close) + "?"
+
+
 def _is_number(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
@@ -69,7 +92,9 @@ def _evaluate(node, names):
             try:
                 return names[name]
             except KeyError:
-                raise QuantityParseError(f"'{name}' is not a known unit") from None
+                raise QuantityParseError(
+                    f"'{name}' is not a known unit.{_suggest(name, names)}"
+                ) from None
         case ast.BinOp(left=left, op=ast.Mult(), right=right):
             return _evaluate(left, names) * _evaluate(right, names)
         case ast.BinOp(left=left, op=ast.Div(), right=right):

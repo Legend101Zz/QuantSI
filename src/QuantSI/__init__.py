@@ -203,7 +203,7 @@ from .fundamentalunits import (
 )
 
 from ._errors import QuantityParseError
-from ._parsing import parse_quantity
+from ._parsing import parse_dimensions, parse_quantity
 
 from .stdunits import (
     mV,
@@ -418,6 +418,7 @@ __all__ = [
     "QuantSIWarning",
     "QuantityParseError",
     "parse_quantity",
+    "parse_dimensions",
     "get_or_create_dimension",
     "get_dimensions",
     "is_dimensionless",
