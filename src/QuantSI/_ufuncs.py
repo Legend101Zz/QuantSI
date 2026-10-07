@@ -10,6 +10,8 @@ import enum
 
 import numpy as np
 
+from ._dimension import DIMENSIONLESS, fail_for_dimension_mismatch, get_dimensions
+
 
 class Rule(enum.Enum):
     """What a ufunc does with the dimensions of its arguments."""
@@ -97,6 +99,141 @@ RULES = {
     np.left_shift: Rule.INTEGER_ONLY,
     np.right_shift: Rule.INTEGER_ONLY,
 }
+
+
+# ------------------------------------------------------------------------------
+# One handler per rule. A handler receives the Quantity whose __array_ufunc__
+# NumPy called, the ufunc, the method ("__call__" or "reduce"), the inputs and
+# the keyword arguments, and returns ``(result, dim)``: NumPy's result computed on
+# plain arrays, and the dimensions to attach to it (``None`` for "return the result
+# as it is"). Error messages are only built when a check fails.
+# ------------------------------------------------------------------------------
+
+
+def _dim(obj):
+    """get_dimensions(obj), without the cost of an exception for plain numbers."""
+    dim = getattr(obj, "dim", None)
+    return get_dimensions(obj) if dim is None else dim
+
+
+def _call(ufunc, method, inputs, kwargs):
+    return getattr(ufunc, method)(*map(np.asarray, inputs), **kwargs)
+
+
+def _unitless_result(self, ufunc, method, inputs, kwargs):
+    return _call(ufunc, method, inputs, kwargs), None
+
+
+def _preserve(self, ufunc, method, inputs, kwargs):
+    return _call(ufunc, method, inputs, kwargs), self.dim
+
+
+def _match(self, ufunc, method, inputs, kwargs):
+    # Only checked for calls: for reductions, all elements share one dimension.
+    if method == "__call__" and _dim(inputs[0]) is not _dim(inputs[1]):
+        fail_for_dimension_mismatch(
+            inputs[0],
+            inputs[1],
+            error_message=(
+                "Cannot calculate {val1} %s {val2}, the units do not match" % ufunc.__name__
+            ),
+            val1=inputs[0],
+            val2=inputs[1],
+        )
+    return _call(ufunc, method, inputs, kwargs), self.dim
+
+
+def _compare(self, ufunc, method, inputs, kwargs):
+    result, _ = _match(self, ufunc, method, inputs, kwargs)
+    return result, None
+
+
+def _multiply(self, ufunc, method, inputs, kwargs):
+    if method == "__call__":
+        dim = _dim(inputs[0]) * _dim(inputs[1])
+    else:
+        dim = _dim(inputs[0])
+    return _call(ufunc, method, inputs, kwargs), dim
+
+
+def _divide(self, ufunc, method, inputs, kwargs):
+    return _call(ufunc, method, inputs, kwargs), _dim(inputs[0]) / _dim(inputs[1])
+
+
+def _sqrt(self, ufunc, method, inputs, kwargs):
+    return _call(ufunc, method, inputs, kwargs), self.dim**0.5
+
+
+def _square(self, ufunc, method, inputs, kwargs):
+    return _call(ufunc, method, inputs, kwargs), self.dim**2
+
+
+def _reciprocal(self, ufunc, method, inputs, kwargs):
+    return _call(ufunc, method, inputs, kwargs), _dim(inputs[0]) ** -1
+
+
+def _power(self, ufunc, method, inputs, kwargs):
+    exponent = inputs[1]
+    if _dim(exponent) is not DIMENSIONLESS:
+        fail_for_dimension_mismatch(
+            exponent,
+            error_message=(
+                "The exponent for a power operation has to be dimensionless but was {value}"
+            ),
+            value=exponent,
+        )
+    if np.asarray(exponent).size != 1:
+        raise TypeError("Only length-1 arrays can be used as an exponent for quantities.")
+    dim = _dim(inputs[0]) ** np.asarray(exponent)
+    return _call(ufunc, method, inputs, kwargs), dim
+
+
+def _dimensionless(self, ufunc, method, inputs, kwargs):
+    if _dim(inputs[0]) is not DIMENSIONLESS:
+        fail_for_dimension_mismatch(
+            inputs[0],
+            error_message="%s expects a dimensionless argument but got {value}" % ufunc.__name__,
+            value=inputs[0],
+        )
+    return getattr(ufunc, method)(np.asarray(inputs[0]), *inputs[1:], **kwargs), None
+
+
+def _dimensionless_both(self, ufunc, method, inputs, kwargs):
+    for position, value in (("first", inputs[0]), ("second", inputs[1])):
+        if _dim(value) is not DIMENSIONLESS:
+            fail_for_dimension_mismatch(
+                value,
+                error_message=(
+                    f'Both arguments for "{ufunc.__name__}" should be dimensionless but '
+                    f"{position} argument was {{value}}"
+                ),
+                value=value,
+            )
+    return _call(ufunc, method, inputs, kwargs), None
+
+
+def _integer_only(self, ufunc, method, inputs, kwargs):
+    raise TypeError(f"{ufunc.__name__} cannot be used on quantities.")
+
+
+_HANDLER_FOR_RULE = {
+    Rule.UNITLESS_RESULT: _unitless_result,
+    Rule.PRESERVE: _preserve,
+    Rule.MATCH: _match,
+    Rule.COMPARE: _compare,
+    Rule.MULTIPLY: _multiply,
+    Rule.DIVIDE: _divide,
+    Rule.SQRT: _sqrt,
+    Rule.SQUARE: _square,
+    Rule.RECIPROCAL: _reciprocal,
+    Rule.POWER: _power,
+    Rule.DIMENSIONLESS: _dimensionless,
+    Rule.DIMENSIONLESS_BOTH: _dimensionless_both,
+    Rule.INTEGER_ONLY: _integer_only,
+}
+
+#: ufunc -> handler, built once from RULES.
+HANDLERS = {ufunc: _HANDLER_FOR_RULE[rule] for ufunc, rule in RULES.items()}
 
 
 # ------------------------------------------------------------------------------

@@ -21,13 +21,13 @@ pytestmark = pytest.mark.perf_guard
 
 #: (case, QuantSI statement, plain NumPy statement, maximum ratio)
 CASES = [
-    ("array_add", "A + B", "a + b", 13),
-    ("array_multiply", "A * R", "a * b", 14),
+    ("array_add", "A + B", "a + b", 8),
+    ("array_multiply", "A * R", "a * b", 9),
     ("array_compare", "A < B", "a < b", 5),
-    ("array_sum", "np.sum(A)", "np.sum(a)", 7),
-    ("array_index", "A[10]", "a[10]", 30),
-    ("scalar_add", "X + Y", "x + y", 21),
-    ("scalar_multiply", "X * Y", "x * y", 26),
+    ("array_sum", "np.sum(A)", "np.sum(a)", 6),
+    ("array_index", "A[10]", "a[10]", 19),
+    ("scalar_add", "X + Y", "x + y", 12),
+    ("scalar_multiply", "X * Y", "x * y", 14),
     ("number_times_unit", "3 * mvolt", "3 * x0", 23),
     ("str_scalar", "str(X)", "str(x)", 175),
 ]

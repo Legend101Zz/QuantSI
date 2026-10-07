@@ -23,18 +23,8 @@ from ._dimension import (
 )
 from ._errors import DimensionMismatchError
 from ._registry import additional_unit_register, standard_unit_register, user_unit_register
-from ._ufuncs import RULES, Rule
+from ._ufuncs import HANDLERS
 from ._utils import _flatten, set_module
-
-#: The rules handled by the "dimensions change" branch of __array_ufunc__.
-_CHANGES_DIMENSIONS = {
-    Rule.SQRT,
-    Rule.POWER,
-    Rule.SQUARE,
-    Rule.DIVIDE,
-    Rule.RECIPROCAL,
-    Rule.MULTIPLY,
-}
 
 
 def wrap_function_keep_dimensions(func):
@@ -252,7 +242,6 @@ class Quantity(np.ndarray):
     def __array_ufunc__(self, uf, method, *inputs, **kwargs):
         if method not in ("__call__", "reduce"):
             return NotImplemented
-        uf_method = getattr(uf, method)
         if "out" in kwargs:
             # In contrast to numpy, we will not change a scalar value in-place,
             # i.e. a scalar Quantity will act like a Python float and not like
@@ -265,100 +254,11 @@ class Quantity(np.ndarray):
                 # need to check its dimensions
                 assert len(kwargs["out"]) == 1
                 kwargs["out"] = (np.asarray(kwargs["out"][0]),)
-        rule = RULES.get(uf)
-        if rule is Rule.UNITLESS_RESULT:
-            # do not touch return value
-            return uf_method(*[np.asarray(a) for a in inputs], **kwargs)
-        elif rule is Rule.PRESERVE:
-            return _new_quantity(uf_method(*[np.asarray(a) for a in inputs], **kwargs), self.dim)
-        elif rule in _CHANGES_DIMENSIONS:
-            if rule is Rule.SQRT:
-                dim = self.dim**0.5
-            elif rule is Rule.POWER:
-                fail_for_dimension_mismatch(
-                    inputs[1],
-                    error_message=(
-                        "The exponent for a power operation has to be dimensionless but was {value}"
-                    ),
-                    value=inputs[1],
-                )
-                if np.asarray(inputs[1]).size != 1:
-                    raise TypeError(
-                        "Only length-1 arrays can be used as an exponent for quantities."
-                    )
-                dim = get_dimensions(inputs[0]) ** np.asarray(inputs[1])
-            elif rule is Rule.SQUARE:
-                dim = self.dim**2
-            elif rule is Rule.DIVIDE:
-                dim = get_dimensions(inputs[0]) / get_dimensions(inputs[1])
-            elif rule is Rule.RECIPROCAL:
-                dim = get_dimensions(inputs[0]) ** -1
-            elif rule is Rule.MULTIPLY:
-                if method == "__call__":
-                    dim = get_dimensions(inputs[0]) * get_dimensions(inputs[1])
-                else:
-                    dim = get_dimensions(inputs[0])
-            else:
-                return NotImplemented
-            return _new_quantity(uf_method(*[np.asarray(a) for a in inputs], **kwargs), dim)
-        elif rule is Rule.INTEGER_ONLY:
-            # Numpy should already raise a TypeError by itself
-            raise TypeError(f"{uf.__name__} cannot be used on quantities.")
-        elif rule is Rule.MATCH or rule is Rule.COMPARE:
-            # Ok if dimension of arguments match (for reductions, they always do)
-            if method == "__call__":
-                fail_for_dimension_mismatch(
-                    inputs[0],
-                    inputs[1],
-                    error_message=("Cannot calculate {val1} %s {val2}, the units do not match")
-                    % uf.__name__,
-                    val1=inputs[0],
-                    val2=inputs[1],
-                )
-            if rule is Rule.COMPARE:
-                return uf_method(*[np.asarray(i) for i in inputs], **kwargs)
-            else:
-                return _new_quantity(
-                    uf_method(*[np.asarray(i) for i in inputs], **kwargs), self.dim
-                )
-        elif rule is Rule.DIMENSIONLESS:
-            # Ok if argument is dimensionless
-            fail_for_dimension_mismatch(
-                inputs[0],
-                error_message="%s expects a dimensionless argument but got {value}" % uf.__name__,
-                value=inputs[0],
-            )
-            return uf_method(np.asarray(inputs[0]), *inputs[1:], **kwargs)
-        elif rule is Rule.DIMENSIONLESS_BOTH:
-            # Ok if both arguments are dimensionless
-            fail_for_dimension_mismatch(
-                inputs[0],
-                error_message=(
-                    'Both arguments for "%s" should be dimensionless but first argument was {value}'
-                )
-                % uf.__name__,
-                value=inputs[0],
-            )
-            fail_for_dimension_mismatch(
-                inputs[1],
-                error_message=(
-                    "Both arguments for "
-                    '"%s" should be '
-                    "dimensionless but "
-                    "second argument was "
-                    "{value}"
-                )
-                % uf.__name__,
-                value=inputs[1],
-            )
-            return uf_method(
-                np.asarray(inputs[0]),
-                np.asarray(inputs[1]),
-                *inputs[2:],
-                **kwargs,
-            )
-        else:
+        handler = HANDLERS.get(uf)
+        if handler is None:
             return NotImplemented
+        result, dim = handler(self, uf, method, inputs, kwargs)
+        return result if dim is None else _new_quantity(result, dim)
 
     def __deepcopy__(self, memo):
         return Quantity(self, copy=True)
