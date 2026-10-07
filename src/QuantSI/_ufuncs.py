@@ -23,12 +23,15 @@ class Rule(enum.Enum):
     MULTIPLY = "multiplies the dimensions"
     DIVIDE = "divides the dimensions"
     SQRT = "takes the square root of the dimensions"
+    CBRT = "takes the cube root of the dimensions"
     SQUARE = "squares the dimensions"
     RECIPROCAL = "inverts the dimensions"
     POWER = "raises the dimensions to a dimensionless, scalar exponent"
     DIMENSIONLESS = "needs a dimensionless argument"
     DIMENSIONLESS_BOTH = "needs two dimensionless arguments"
+    FIRST_ARGUMENT = "keeps the first argument's dimensions, uses only the second's sign"
     INTEGER_ONLY = "only works on integers, never on quantities"
+    UNSUPPORTED = "is not supported for quantities"
 
 
 #: The rule for each supported ufunc.
@@ -98,6 +101,42 @@ RULES = {
     np.invert: Rule.INTEGER_ONLY,
     np.left_shift: Rule.INTEGER_ONLY,
     np.right_shift: Rule.INTEGER_ONLY,
+    # The remaining ufuncs of the numpy namespace (see test_every_numpy_ufunc_has_a_rule)
+    np.fabs: Rule.PRESERVE,
+    np.spacing: Rule.PRESERVE,
+    np.fmax: Rule.MATCH,
+    np.fmin: Rule.MATCH,
+    np.nextafter: Rule.MATCH,
+    np.signbit: Rule.UNITLESS_RESULT,
+    np.vecdot: Rule.MULTIPLY,
+    np.matvec: Rule.MULTIPLY,
+    np.vecmat: Rule.MULTIPLY,
+    np.float_power: Rule.POWER,
+    np.cbrt: Rule.CBRT,
+    np.deg2rad: Rule.DIMENSIONLESS,
+    np.degrees: Rule.DIMENSIONLESS,
+    np.rad2deg: Rule.DIMENSIONLESS,
+    np.radians: Rule.DIMENSIONLESS,
+    np.copysign: Rule.FIRST_ARGUMENT,
+    np.gcd: Rule.INTEGER_ONLY,
+    np.lcm: Rule.INTEGER_ONLY,
+    np.bitwise_count: Rule.INTEGER_ONLY,
+    np.divmod: Rule.UNSUPPORTED,
+    np.frexp: Rule.UNSUPPORTED,
+    np.modf: Rule.UNSUPPORTED,
+    np.ldexp: Rule.UNSUPPORTED,
+    np.heaviside: Rule.UNSUPPORTED,
+    np.isnat: Rule.UNSUPPORTED,
+}
+
+#: Why the UNSUPPORTED ufuncs are refused, for the error message.
+UNSUPPORTED_REASONS = {
+    np.divmod: "it has two outputs; use // and % separately",
+    np.frexp: "it has two outputs",
+    np.modf: "it has two outputs",
+    np.ldexp: "use x * 2**n instead",
+    np.heaviside: "its second argument's dimensions are ambiguous",
+    np.isnat: "it only applies to dates and times",
 }
 
 
@@ -191,6 +230,22 @@ def _sqrt(self, ufunc, method, inputs, kwargs):
     return _call(ufunc, method, inputs, kwargs), self.dim**0.5
 
 
+def _cbrt(self, ufunc, method, inputs, kwargs):
+    return _call(ufunc, method, inputs, kwargs), self.dim ** (1 / 3)
+
+
+def _first_argument(self, ufunc, method, inputs, kwargs):
+    return _call(ufunc, method, inputs, kwargs), _dim(inputs[0])
+
+
+def _unsupported(self, ufunc, method, inputs, kwargs):
+    raise TypeError(
+        f"numpy.{ufunc.__name__} is not supported for quantities: "
+        f"{UNSUPPORTED_REASONS[ufunc]}. Apply it to np.asarray(x) (the values in base "
+        "SI units) if dropping the units is intended."
+    )
+
+
 def _square(self, ufunc, method, inputs, kwargs):
     return _call(ufunc, method, inputs, kwargs), self.dim**2
 
@@ -251,12 +306,15 @@ _HANDLER_FOR_RULE = {
     Rule.MULTIPLY: _multiply,
     Rule.DIVIDE: _divide,
     Rule.SQRT: _sqrt,
+    Rule.CBRT: _cbrt,
     Rule.SQUARE: _square,
     Rule.RECIPROCAL: _reciprocal,
     Rule.POWER: _power,
     Rule.DIMENSIONLESS: _dimensionless,
     Rule.DIMENSIONLESS_BOTH: _dimensionless_both,
     Rule.INTEGER_ONLY: _integer_only,
+    Rule.FIRST_ARGUMENT: _first_argument,
+    Rule.UNSUPPORTED: _unsupported,
 }
 
 #: ufunc -> handler, built once from RULES.
