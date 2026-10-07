@@ -151,9 +151,32 @@ def _compare(self, ufunc, method, inputs, kwargs):
 def _multiply(self, ufunc, method, inputs, kwargs):
     if method == "__call__":
         dim = _dim(inputs[0]) * _dim(inputs[1])
-    else:
-        dim = _dim(inputs[0])
+    else:  # reduce: a product of n factors of the same dimension has dimension**n
+        dim = _dim(inputs[0]) ** _factors_per_result(inputs[0], kwargs)
     return _call(ufunc, method, inputs, kwargs), dim
+
+
+def _factors_per_result(array, kwargs):
+    """For a product reduction: how many elements are multiplied into each result.
+
+    ``initial`` is a plain number and adds no factor. With a ``where`` mask the
+    count can differ between results, but one Quantity has one dimension for all
+    its elements, so such a reduction is refused.
+    """
+    ones = np.ones(np.shape(array), dtype=np.intp)
+    axis = kwargs.get("axis", 0)  # ufunc.reduce's own default; ndarray.prod passes None
+    where = kwargs.get("where", True)
+    counts = np.add.reduce(ones, axis=axis, where=where)
+    distinct = np.unique(counts)
+    if distinct.size > 1:
+        raise TypeError(
+            "Cannot multiply quantities with a different number of factors per "
+            "result (the 'where' mask selects different numbers of elements): the "
+            "results would have different dimensions."
+        )
+    if distinct.size == 0:  # an empty result: no element, any dimension will do
+        return 0
+    return int(distinct[0])
 
 
 def _divide(self, ufunc, method, inputs, kwargs):

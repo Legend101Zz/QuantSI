@@ -726,26 +726,6 @@ class Quantity(np.ndarray):
     searchsorted.__doc__ = np.ndarray.searchsorted.__doc__
     searchsorted._do_not_run_doctests = True
 
-    def prod(self, *args, **kwds):  # pylint: disable=C0111
-        prod_result = super().prod(*args, **kwds)
-        # Calculating the correct dimensions is not completly trivial (e.g.
-        # like doing self.dim**self.size) because prod can be called on
-        # multidimensional arrays along a certain axis.
-        # Our solution: Use a "dummy matrix" containing a 1 (without units) at
-        # each entry and sum it, using the same keyword arguments as provided.
-        # The result gives the exponent for the dimensions.
-        # This relies on sum and prod having the same arguments, which is true
-        # now and probably remains like this in the future
-        dim_exponent = np.ones_like(self).sum(*args, **kwds)
-        # The result is possibly multidimensional but all entries should be
-        # identical
-        if dim_exponent.size > 1:
-            dim_exponent = dim_exponent[0]
-        return Quantity(np.asarray(prod_result), self.dim**dim_exponent)
-
-    prod.__doc__ = np.ndarray.prod.__doc__
-    prod._do_not_run_doctests = True
-
     def cumprod(self, *args, **kwds):  # pylint: disable=C0111
         if not self.is_dimensionless:
             raise TypeError(
