@@ -23,7 +23,7 @@ from ._dimension import (
 )
 from ._errors import DimensionMismatchError
 from ._registry import additional_unit_register, standard_unit_register, user_unit_register
-from ._ufuncs import HANDLERS
+from ._ufuncs import HANDLERS, check_method
 from ._utils import _flatten, set_module
 
 
@@ -240,11 +240,13 @@ class Quantity(np.ndarray):
         self.dim = getattr(orig, "dim", DIMENSIONLESS)
 
     def __array_ufunc__(self, uf, method, *inputs, **kwargs):
-        if method not in ("__call__", "reduce"):
-            return NotImplemented
         handler = HANDLERS.get(uf)
         if handler is None:
             return NotImplemented
+        if method not in ("__call__", "reduce"):
+            check_method(uf, method, inputs)
+            if method == "at":  # modifies inputs[0] in place, returns None
+                return uf.at(*map(np.asarray, inputs), **kwargs)
         if "out" in kwargs:
             return self._ufunc_with_output(handler, uf, method, inputs, kwargs)
         result, dim = handler(self, uf, method, inputs, kwargs)

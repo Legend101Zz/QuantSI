@@ -120,6 +120,10 @@ def _call(ufunc, method, inputs, kwargs):
     return getattr(ufunc, method)(*map(np.asarray, inputs), **kwargs)
 
 
+#: ufunc methods that combine elements pairwise, like a plain call.
+_ELEMENTWISE = {"__call__", "outer"}
+
+
 def _unitless_result(self, ufunc, method, inputs, kwargs):
     return _call(ufunc, method, inputs, kwargs), None
 
@@ -130,7 +134,7 @@ def _preserve(self, ufunc, method, inputs, kwargs):
 
 def _match(self, ufunc, method, inputs, kwargs):
     # Only checked for calls: for reductions, all elements share one dimension.
-    if method == "__call__" and _dim(inputs[0]) is not _dim(inputs[1]):
+    if method in _ELEMENTWISE and _dim(inputs[0]) is not _dim(inputs[1]):
         fail_for_dimension_mismatch(
             inputs[0],
             inputs[1],
@@ -149,7 +153,7 @@ def _compare(self, ufunc, method, inputs, kwargs):
 
 
 def _multiply(self, ufunc, method, inputs, kwargs):
-    if method == "__call__":
+    if method in _ELEMENTWISE:
         dim = _dim(inputs[0]) * _dim(inputs[1])
     else:  # reduce: a product of n factors of the same dimension has dimension**n
         dim = _dim(inputs[0]) ** _factors_per_result(inputs[0], kwargs)
@@ -366,3 +370,55 @@ UFUNCS_INTEGERS = [
     "left_shift",
     "right_shift",
 ]
+
+
+# ------------------------------------------------------------------------------
+# ufunc methods other than __call__, outer and reduce
+# ------------------------------------------------------------------------------
+
+#: Rules for which every partial result of ``accumulate``/``reduceat`` has the
+#: input's dimensions (or none), so that one Quantity can hold them all.
+_UNIFORM_PARTIAL_RESULTS = {Rule.MATCH, Rule.UNITLESS_RESULT}
+
+
+def check_method(ufunc, method, inputs):
+    """Refuse ufunc methods whose results a single Quantity cannot represent."""
+    rule = RULES[ufunc]
+    if method in ("accumulate", "reduceat"):
+        if rule not in _UNIFORM_PARTIAL_RESULTS and _dim(inputs[0]) is not DIMENSIONLESS:
+            raise TypeError(
+                f"{ufunc.__name__}.{method} is not supported for quantities with "
+                "dimensions: the partial results would have different dimensions."
+            )
+    elif method == "at":
+        _check_at(ufunc, rule, inputs)
+
+
+def _check_at(ufunc, rule, inputs):
+    """``ufunc.at(target, indices[, operand])`` changes some elements in place.
+
+    Allowed only if those elements keep the target's dimensions.
+    """
+    target, _, *operand = inputs
+    target_dim = _dim(target)
+    operand_dim = _dim(operand[0]) if operand else target_dim
+    if rule is Rule.MATCH:
+        if operand_dim is not target_dim:
+            fail_for_dimension_mismatch(
+                target,
+                operand[0],
+                error_message=(
+                    "Cannot calculate {val1} %s {val2}, the units do not match" % ufunc.__name__
+                ),
+                val1=target,
+                val2=operand[0],
+            )
+    elif rule is Rule.PRESERVE and not operand:
+        pass
+    elif rule in (Rule.MULTIPLY, Rule.DIVIDE) and operand_dim is DIMENSIONLESS:
+        pass
+    elif target_dim is not DIMENSIONLESS or operand_dim is not DIMENSIONLESS:
+        raise TypeError(
+            f"{ufunc.__name__}.at cannot be used here: it would change the dimensions "
+            "of only some elements of a quantity."
+        )
