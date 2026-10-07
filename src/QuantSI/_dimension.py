@@ -221,11 +221,24 @@ class Dimension:
     # Note that none of the dimension arithmetic objects do sanity checking
     # on their inputs, although most will throw an exception if you pass the
     # wrong sort of input
+    #
+    # Every multiplication or division of quantities multiplies or divides their
+    # dimensions, so the results are cached (see _remember below).
     def __mul__(self, value):
-        return get_or_create_dimension([x + y for x, y in zip(self._dims, value._dims)])
+        key = (id(self), id(value))
+        entry = _products.get(key)
+        if entry is None:
+            result = get_or_create_dimension([x + y for x, y in zip(self._dims, value._dims)])
+            return _remember(_products, key, (self, value, result))
+        return entry[-1]
 
     def __div__(self, value):
-        return get_or_create_dimension([x - y for x, y in zip(self._dims, value._dims)])
+        key = (id(self), id(value))
+        entry = _quotients.get(key)
+        if entry is None:
+            result = get_or_create_dimension([x - y for x, y in zip(self._dims, value._dims)])
+            return _remember(_quotients, key, (self, value, result))
+        return entry[-1]
 
     def __truediv__(self, value):
         return self.__div__(value)
@@ -234,7 +247,12 @@ class Dimension:
         value = np.asarray(value)
         if value.size > 1:
             raise TypeError("Too many exponents")
-        return get_or_create_dimension([x * value for x in self._dims])
+        key = (id(self), value.item())
+        entry = _powers.get(key)
+        if entry is None:
+            result = get_or_create_dimension([x * value for x in self._dims])
+            return _remember(_powers, key, (self, result))
+        return entry[-1]
 
     def __imul__(self, value):
         raise TypeError("Dimension object is immutable")
@@ -284,6 +302,23 @@ class Dimension:
 DIMENSIONLESS = Dimension((0, 0, 0, 0, 0, 0, 0))
 
 _dimensions = {(0, 0, 0, 0, 0, 0, 0): DIMENSIONLESS}
+
+
+#: Caches for Dimension arithmetic, keyed by the operands' ``id()``. An id is only
+#: unique while its object is alive, so every entry also holds the operands
+#: themselves: while the entry exists, no other object can get the same id.
+#: (Interned dimensions live for the whole process anyway.)
+_products = {}
+_quotients = {}
+_powers = {}
+_MAX_CACHE_ENTRIES = 4096  # per cache; beyond that, results are computed every time
+
+
+def _remember(cache, key, entry):
+    """Store ``entry`` (operands..., result) unless the cache is full; return the result."""
+    if len(cache) < _MAX_CACHE_ENTRIES:
+        cache[key] = entry
+    return entry[-1]
 
 
 @set_module("QuantSI.fundamentalunits")

@@ -43,3 +43,42 @@ def test_equality_with_other_types():
 
 def test_interning_makes_equal_dimensions_identical():
     assert get_or_create_dimension(m=2, kg=1, s=-3, A=-1) is volt.dim
+
+
+def uncached_product(dim1, dim2):
+    return get_or_create_dimension([x + y for x, y in zip(dim1._dims, dim2._dims, strict=True)])
+
+
+@pytest.mark.parametrize(("dim1", "dim2"), dimension_pairs()[:60])
+def test_cached_arithmetic_matches_direct_computation(dim1, dim2):
+    for _ in range(2):  # the second round is answered from the caches
+        assert dim1 * dim2 is uncached_product(dim1, dim2)
+        assert dim1 / dim2 is get_or_create_dimension(
+            [x - y for x, y in zip(dim1._dims, dim2._dims, strict=True)]
+        )
+        assert dim1**2 is get_or_create_dimension([2 * x for x in dim1._dims])
+        assert dim1**0.5 is get_or_create_dimension([0.5 * x for x in dim1._dims])
+
+
+def test_cache_entries_keep_their_operands_alive():
+    from QuantSI import _dimension
+
+    dim1 = get_or_create_dimension(m=7, kg=-3)
+    product = dim1 * volt.dim
+    entry = _dimension._products[(id(dim1), id(volt.dim))]
+    assert entry[0] is dim1 and entry[1] is volt.dim and entry[2] is product
+
+
+def test_full_cache_still_computes(monkeypatch):
+    from QuantSI import _dimension
+
+    monkeypatch.setattr(_dimension, "_MAX_CACHE_ENTRIES", 0)
+    monkeypatch.setattr(_dimension, "_products", {})
+    dim1 = get_or_create_dimension(m=5)
+    assert dim1 * volt.dim is uncached_product(dim1, volt.dim)
+    assert _dimension._products == {}
+
+
+def test_arithmetic_with_a_non_dimension_fails():
+    with pytest.raises(AttributeError):
+        volt.dim * 3
