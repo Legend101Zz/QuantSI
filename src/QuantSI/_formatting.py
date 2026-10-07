@@ -1,8 +1,50 @@
-"""Turning quantities into text."""
+"""Turning quantities into text.
+
+`format_quantity` is the one place that writes a quantity as text; ``str``,
+``repr``, ``format``, ``in_unit`` and ``in_best_unit`` all go through it.
+"""
 
 import numpy as np
 
 from ._dimension import fail_for_dimension_mismatch, is_dimensionless
+from ._unit import Unit
+
+
+def format_quantity(quantity, unit, precision=None, python_code=False):
+    """Write ``quantity`` in ``unit`` (which must have the same dimensions).
+
+    With ``python_code=False`` the text is for people (``'3. mV'``); with
+    ``python_code=True`` it is an expression that evaluates back to the quantity
+    (``'3. * mvolt'``). NumPy formats the numbers, following its print options;
+    ``precision`` overrides the print option of that name.
+    """
+    value = np.asarray(quantity / unit)
+    # numpy uses the printoptions setting only in arrays, not in array
+    # scalars, so we use this hackish way of turning the scalar first into
+    # an array, then removing the square brackets from the output
+    if value.shape == ():
+        s = np.array_str(np.array([value]), precision=precision)
+        s = s.replace("[", "").replace("]", "").strip()
+    else:
+        if python_code:
+            s = np.array_repr(value, precision=precision)
+        else:
+            s = np.array_str(value, precision=precision)
+
+    if not unit.is_dimensionless:
+        if isinstance(unit, Unit):
+            if python_code:
+                s += f" * {repr(unit)}"
+            else:
+                s += f" {str(unit)}"
+        else:
+            if python_code:
+                s += f" * {repr(unit.dim)}"
+            else:
+                s += f" {str(unit.dim)}"
+    elif python_code:  # Make a quantity without unit recognisable
+        return f"{type(quantity).__name__}({s.strip()})"
+    return s.strip()
 
 
 def in_unit(x, u, precision=None):

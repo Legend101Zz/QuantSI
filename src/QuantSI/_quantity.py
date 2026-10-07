@@ -431,37 +431,10 @@ class Quantity(np.ndarray):
         in_unit
         """
 
-        from ._unit import Unit
+        from ._formatting import format_quantity
 
         fail_for_dimension_mismatch(self, u, 'Non-matching unit for method "in_unit"')
-
-        value = np.asarray(self / u)
-        # numpy uses the printoptions setting only in arrays, not in array
-        # scalars, so we use this hackish way of turning the scalar first into
-        # an array, then removing the square brackets from the output
-        if value.shape == ():
-            s = np.array_str(np.array([value]), precision=precision)
-            s = s.replace("[", "").replace("]", "").strip()
-        else:
-            if python_code:
-                s = np.array_repr(value, precision=precision)
-            else:
-                s = np.array_str(value, precision=precision)
-
-        if not u.is_dimensionless:
-            if isinstance(u, Unit):
-                if python_code:
-                    s += f" * {repr(u)}"
-                else:
-                    s += f" {str(u)}"
-            else:
-                if python_code:
-                    s += f" * {repr(u.dim)}"
-                else:
-                    s += f" {str(u.dim)}"
-        elif python_code:  # Make a quantity without unit recognisable
-            return f"{self.__class__.__name__}({s.strip()})"
-        return s.strip()
+        return format_quantity(self, u, precision=precision, python_code=python_code)
 
     def get_best_unit(self, *regs):
         """
@@ -541,8 +514,10 @@ class Quantity(np.ndarray):
         --------
         in_best_unit
         """
+        from ._formatting import format_quantity
+
         u = self.get_best_unit(*regs)
-        return self.in_unit(u, precision=precision, python_code=python_code)
+        return format_quantity(self, u, precision=precision, python_code=python_code)
 
     # ==============================================================================
     # Overwritten ndarray methods
