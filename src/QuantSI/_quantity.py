@@ -705,6 +705,26 @@ class Quantity(np.ndarray):
     cumsum = wrap_function_keep_dimensions(np.ndarray.cumsum)
     trace = wrap_function_keep_dimensions(np.trace)
 
+    #### Methods returning indices: the result has no units ####
+    # (Without these, ndarray's methods would return indices labelled with the
+    # quantity's dimensions. NumPy functions such as np.argsort are handled in
+    # _array_functions.)
+    def argmax(self, *args, **kwds):
+        """Like `numpy.ndarray.argmax`; returns plain indices."""
+        return np.asarray(self).argmax(*args, **kwds)
+
+    def argmin(self, *args, **kwds):
+        """Like `numpy.ndarray.argmin`; returns plain indices."""
+        return np.asarray(self).argmin(*args, **kwds)
+
+    def argsort(self, *args, **kwds):
+        """Like `numpy.ndarray.argsort`; returns plain indices."""
+        return np.asarray(self).argsort(*args, **kwds)
+
+    def argpartition(self, *args, **kwds):
+        """Like `numpy.ndarray.argpartition`; returns plain indices."""
+        return np.asarray(self).argpartition(*args, **kwds)
+
     def fill(self, values):  # pylint: disable=C0111
         fail_for_dimension_mismatch(self, values, "fill")
         super().fill(values)

@@ -100,7 +100,7 @@ SUBCLASS_SAFE.update(
 UNIT_FREE.update(
     {
         # indices and positions
-        np.argwhere, np.flatnonzero, np.nonzero, np.lexsort, np.nanargmax, np.nanargmin,
+        np.argmax, np.argmin, np.argsort, np.argpartition, np.argwhere, np.flatnonzero, np.nonzero, np.lexsort, np.nanargmax, np.nanargmin,
         np.ix_, np.diag_indices_from, np.tril_indices_from, np.triu_indices_from,
         np.unravel_index, np.ravel_multi_index,
         # counts, booleans and dimensionless results

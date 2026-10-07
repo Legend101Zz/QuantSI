@@ -185,6 +185,24 @@ CASES = {
     "linalg.matrix_power": [("2d", lambda ns: np.linalg.matrix_power(ns.M, 2), "m2")],
     "linalg.vecdot": [("1d", lambda ns: np.linalg.vecdot(ns.m, ns.s), "m s")],
     # ---- UNIT_FREE ------------------------------------------------------------------
+    "argmax": [
+        ("1d", lambda ns: np.argmax(ns.m), "plain"),
+        ("axis", lambda ns: np.argmax(ns.m2, axis=0), "plain"),
+        ("method", lambda ns: ns.m2.argmax(axis=1), "plain"),
+    ],
+    "argmin": [
+        ("1d", lambda ns: np.argmin(ns.m), "plain"),
+        ("axis", lambda ns: np.argmin(ns.m2, axis=0), "plain"),
+        ("method", lambda ns: ns.m2.argmin(axis=1), "plain"),
+    ],
+    "argsort": [
+        ("1d", lambda ns: np.argsort(ns.m), "plain"),
+        ("method", lambda ns: ns.m2.argsort(axis=0), "plain"),
+    ],
+    "argpartition": [
+        ("1d", lambda ns: np.argpartition(ns.m, 1), "plain"),
+        ("method", lambda ns: ns.m.argpartition(1), "plain"),
+    ],
     "argwhere": [("1d", lambda ns: np.argwhere(ns.m), "plain")],
     "flatnonzero": [("1d", lambda ns: np.flatnonzero(ns.m), "plain")],
     "nonzero": [("1d", lambda ns: np.nonzero(ns.m), ("plain",))],
