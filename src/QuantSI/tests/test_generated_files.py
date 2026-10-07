@@ -23,3 +23,12 @@ def test_allunits_is_up_to_date():
         "allunits.py differs from what tools/generate_units.py generates; "
         "run `python tools/generate_units.py` and commit the result"
     )
+
+
+@pytest.mark.skipif(not GENERATOR.exists(), reason="generator not available (installed package)")
+def test_stdunits_is_up_to_date():
+    generator = load_generator()
+    assert generator.STDUNITS_OUTPUT.read_text() == generator.generate_stdunits(), (
+        "stdunits.py differs from what tools/generate_units.py generates; "
+        "run `python tools/generate_units.py` and commit the result"
+    )
