@@ -16,6 +16,7 @@ Welcome to QuantSI's documentation!
    user/text
    developer/units
    developer/architecture
+   developer/performance
    usage_comparison/usage_comparison
    modules
 

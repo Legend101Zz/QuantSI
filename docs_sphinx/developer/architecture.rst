@@ -57,6 +57,14 @@ happens on that rare path.
     Reading quantities from text (``parse_quantity``) without ``eval``.
 ``_decorators``
     ``check_units``.
+``_wrappers``
+    The ``wrap_function_*`` helpers that ``unitsafefunctions`` is built from.
+
+``QuantSI.unitsafefunctions`` (public, from Brian2) holds unit-aware versions of
+``sin``, ``exp``, ``arange``, ... with the metadata Brian2's code generation
+reads. ``tools/`` holds the code generator for the unit modules
+(``generate_units.py``), the scripts that write the test fixtures, and the
+Brian2 integration used in CI (``tools/brian2``).
 
 Rules that keep the package correct
 -----------------------------------

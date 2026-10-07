@@ -12,16 +12,20 @@ used on its own.
 
 ```python
 >>> import numpy as np
->>> from QuantSI import Mohm, mV, nA
+>>> from QuantSI import Mohm, mV, nA, parse_quantity
 >>> v = np.array([-70.0, -55.0]) * mV
 >>> v
 array([-70., -55.]) * mvolt
 >>> 2 * nA * 50 * Mohm
 100. * mvolt
+>>> f"{v.max():.1f}"
+'-55.0 mV'
 >>> v + 1 * nA
 Traceback (most recent call last):
     ...
 DimensionMismatchError: Cannot calculate [-70. -55.] mV add 1. nA, the units do not match (units are V and A).
+>>> parse_quantity("-70 * mV")
+-70. * mvolt
 
 ```
 
@@ -31,8 +35,8 @@ DimensionMismatchError: Cannot calculate [-70. -55.] mV add 1. nA, the units do 
   kind of quantity (so checking "same kind?" is a single identity check).
 - Checks arithmetic, comparisons and the supported NumPy functions, and raises
   `DimensionMismatchError` when dimensions do not match.
-- Displays values in a sensible unit (`3. mV`), and provides ~2000 named units
-  (`mV`, `nA`, `Mohm`, ...).
+- Displays values in a sensible unit (`3. mV`), parses simple unit expressions
+  (`"3.5 * mV"`), and provides ~2000 named units generated from one rule.
 
 ## What QuantSI deliberately does not do
 

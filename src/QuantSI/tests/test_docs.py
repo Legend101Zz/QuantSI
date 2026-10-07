@@ -5,7 +5,8 @@ import pathlib
 
 import pytest
 
-USER_DOCS = pathlib.Path(__file__).parents[3] / "docs_sphinx" / "user"
+ROOT = pathlib.Path(__file__).parents[3]
+USER_DOCS = ROOT / "docs_sphinx" / "user"
 
 
 @pytest.mark.skipif(
@@ -15,5 +16,15 @@ USER_DOCS = pathlib.Path(__file__).parents[3] / "docs_sphinx" / "user"
 def test_documentation_examples(page):
     result = doctest.testfile(
         str(USER_DOCS / page), module_relative=False, optionflags=doctest.ELLIPSIS
+    )
+    assert result.failed == 0
+
+
+@pytest.mark.skipif(not (ROOT / "README.md").exists(), reason="README not available")
+def test_readme_examples():
+    result = doctest.testfile(
+        str(ROOT / "README.md"),
+        module_relative=False,
+        optionflags=doctest.ELLIPSIS | doctest.IGNORE_EXCEPTION_DETAIL,
     )
     assert result.failed == 0
