@@ -11,6 +11,7 @@ Welcome to QuantSI's documentation!
    :caption: Contents:
 
    user/units
+   user/numpy
    developer/units
    developer/architecture
    usage_comparison/usage_comparison

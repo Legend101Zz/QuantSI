@@ -29,7 +29,7 @@ from ._dimension import (
     get_or_create_dimension,
     is_scalar_type,
 )
-from ._errors import DimensionMismatchError
+from ._errors import DimensionMismatchError, QuantSIWarning
 from ._registry import additional_unit_register, standard_unit_register, user_unit_register
 from ._ufuncs import HANDLERS, check_method
 from ._utils import _flatten, set_module
@@ -302,7 +302,15 @@ class Quantity(np.ndarray):
         reason = unsupported_reason(func)
         if reason is not None:
             raise TypeError(unsupported_message(func, reason))
-        # Not reviewed yet: NumPy's own implementation, as before.
+        # A function from a NumPy release newer than this QuantSI: run NumPy's own
+        # implementation, so that upgrading NumPy does not break code, but say so.
+        warn(
+            f"numpy.{func.__name__} has not been reviewed for use with quantities; "
+            "running NumPy's own implementation, whose result may have wrong "
+            "dimensions.",
+            QuantSIWarning,
+            stacklevel=2,
+        )
         return super().__array_function__(func, types, args, kwargs)
 
     def __deepcopy__(self, memo):

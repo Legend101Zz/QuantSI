@@ -673,3 +673,59 @@ def test_record_array_functions_are_refused():
 
     with pytest.raises(TypeError, match="structured"):
         recfunctions.structured_to_unstructured(np.ones(3) * metre)
+
+
+def public_numpy_function(function):
+    """NumPy's list of overridable functions contains internal dispatchers for the
+    like= argument (np.eye's, np.ones', ...); NumPy passes the public function to
+    __array_function__, so that is what has to be classified."""
+    public = getattr(np, function.__name__, None)
+    if function.__module__ == "numpy" and public is not None and public is not function:
+        return public
+    return function
+
+
+def test_every_numpy_function_is_classified():
+    # A NumPy release that adds a function fails this test until the function is
+    # put into a bucket (with a case above). Until then, users get a QuantSIWarning.
+    from numpy.testing.overrides import get_overridable_numpy_array_functions
+
+    classified = (
+        _array_functions.SUBCLASS_SAFE
+        | _array_functions.UNIT_FREE
+        | set(_array_functions.UNSUPPORTED)
+        | set(_array_functions.HANDLED)
+    )
+    unclassified = sorted(
+        f"{function.__module__}.{function.__name__}"
+        for function in map(public_numpy_function, get_overridable_numpy_array_functions())
+        if function not in classified
+        and function.__module__ not in _array_functions.UNSUPPORTED_MODULES
+    )
+    assert not unclassified
+
+
+def test_unknown_functions_run_with_a_warning(monkeypatch):
+    from QuantSI import QuantSIWarning
+
+    # Pretend np.sum had not been reviewed.
+    monkeypatch.setattr(
+        _array_functions, "SUBCLASS_SAFE", _array_functions.SUBCLASS_SAFE - {np.sum}
+    )
+    from QuantSI import _quantity
+
+    monkeypatch.setattr(_quantity, "SUBCLASS_SAFE", _array_functions.SUBCLASS_SAFE)
+    with pytest.warns(QuantSIWarning, match="numpy.sum has not been reviewed"):
+        result = np.sum(np.ones(3) * metre)
+    assert result == 3 * metre
+
+
+def test_other_array_types_get_their_turn():
+    # NEP 18: with an unknown array type among the arguments, return NotImplemented
+    # so that NumPy can ask the other type (here it has no answer either).
+    class Other:
+        def __array_function__(self, func, types, args, kwargs):
+            return NotImplemented
+
+    with pytest.raises(TypeError, match="no implementation found"):
+        np.concatenate([np.ones(2) * metre, Other()])

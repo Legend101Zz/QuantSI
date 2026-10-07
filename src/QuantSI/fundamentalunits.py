@@ -35,7 +35,10 @@ from ._dimension import (
     is_dimensionless as is_dimensionless,
     is_scalar_type as is_scalar_type,
 )
-from ._errors import DimensionMismatchError as DimensionMismatchError
+from ._errors import (
+    DimensionMismatchError as DimensionMismatchError,
+    QuantSIWarning as QuantSIWarning,
+)
 from ._formatting import in_best_unit as in_best_unit, in_unit as in_unit
 from ._quantity import (
     Quantity as Quantity,

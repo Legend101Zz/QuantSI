@@ -187,6 +187,7 @@ from .allunits import (
 
 from .fundamentalunits import (
     DimensionMismatchError,
+    QuantSIWarning,
     get_or_create_dimension,
     get_dimensions,
     is_dimensionless,
@@ -411,6 +412,7 @@ __all__ = [
     "Twatt",
     # from fundamentalunits
     "DimensionMismatchError",
+    "QuantSIWarning",
     "get_or_create_dimension",
     "get_dimensions",
     "is_dimensionless",

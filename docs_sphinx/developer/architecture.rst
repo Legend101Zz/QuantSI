@@ -41,6 +41,11 @@ happens on that rare path.
     that get and compare the dimensions of arbitrary objects.
 ``_registry``
     The three unit registries used to pick a display unit.
+``_ufuncs``
+    The rule for every NumPy ufunc (``RULES``) and one handler per rule.
+``_array_functions``
+    How every other NumPy function treats quantities (``__array_function__``):
+    the four buckets and QuantSI's implementations.
 ``_quantity``
     The ``Quantity`` class.
 ``_unit``

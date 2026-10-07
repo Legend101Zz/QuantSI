@@ -47,3 +47,9 @@ class DimensionMismatchError(Exception):
         if len(self.dims):
             s += ")."
         return s
+
+
+class QuantSIWarning(UserWarning):
+    """Warning about a possibly wrong result, e.g. from a NumPy function QuantSI
+    has not reviewed yet. Turn it into an error with
+    ``warnings.simplefilter("error", QuantSIWarning)``."""
