@@ -9,10 +9,14 @@ from __future__ import annotations
 
 import numbers
 import operator
+from typing import TYPE_CHECKING
 from warnings import warn
 
 import numpy as np
 from numpy.exceptions import VisibleDeprecationWarning
+
+if TYPE_CHECKING:
+    from numpy.typing import ArrayLike
 
 from ._array_functions import (
     HANDLED,
@@ -189,6 +193,26 @@ class Quantity(np.ndarray):
     dim: Dimension  #: the physical dimensions (shared, interned)
 
     __array_priority__ = 1000
+
+    if TYPE_CHECKING:
+        # Only type checkers see these; at run time NumPy's own operators run and call
+        # __array_ufunc__. NumPy's type stubs say that arithmetic on any array gives a
+        # plain ndarray, so without these `3 * mV` would not count as a Quantity.
+        # (NumPy declares its own subclass np.matrix the same way.) A result whose
+        # dimensions cancel, like (3 * mV) / (1 * mV), is a plain number at run time.
+        def __add__(self, other: ArrayLike, /) -> Quantity: ...
+        def __radd__(self, other: ArrayLike, /) -> Quantity: ...
+        def __sub__(self, other: ArrayLike, /) -> Quantity: ...  # type: ignore[override]
+        def __rsub__(self, other: ArrayLike, /) -> Quantity: ...  # type: ignore[override]
+        def __mul__(self, other: ArrayLike, /) -> Quantity: ...
+        def __rmul__(self, other: ArrayLike, /) -> Quantity: ...
+        def __truediv__(self, other: ArrayLike, /) -> Quantity: ...  # type: ignore[override]
+        def __rtruediv__(self, other: ArrayLike, /) -> Quantity: ...
+        def __mod__(self, other: ArrayLike, /) -> Quantity: ...
+        def __pow__(self, other: ArrayLike, /) -> Quantity: ...  # type: ignore[override, unused-ignore]  # NumPy 2.5's stubs need it, 2.2's don't
+        def __neg__(self) -> Quantity: ...
+        def __pos__(self) -> Quantity: ...
+        def __abs__(self) -> Quantity: ...
 
     # ==========================================================================
     # Construction and handling of numpy ufuncs

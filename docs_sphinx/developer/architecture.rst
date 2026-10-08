@@ -85,6 +85,11 @@ Rules that keep the package correct
   Brian2's code generation reads them.
 * **Types.** QuantSI ships ``py.typed``. Its functions and classes are annotated
   and checked with mypy in CI, together with ``tests/typing_examples.py``, which
-  states the types users see. The results of arithmetic are typed as NumPy
-  arrays: NumPy's type stubs type every operator that way, and an
-  ``np.ndarray`` subclass cannot change that without overriding each operator.
+  states the types users see. NumPy's type stubs say that arithmetic on any
+  array gives a plain ``ndarray``, so ``Quantity`` and ``Unit`` declare their
+  operators again inside ``if TYPE_CHECKING:``, which only type checkers read:
+  ``3 * mV`` is a ``Quantity`` and ``volt * amp`` a ``Unit``. NumPy declares its own
+  subclass ``np.matrix`` the same way, and since nothing runs, it costs nothing at
+  run time. The types are approximate in two places: a result whose dimensions
+  cancel is a plain number at run time, and pyright types ``array * unit`` as a
+  plain array.

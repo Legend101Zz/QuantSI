@@ -1,18 +1,29 @@
 """The types of QuantSI's API, as a type checker sees them.
 
 mypy checks this file in CI (``mypy``, see pyproject.toml); pytest does not
-collect it. Note: results of arithmetic (``3 * mvolt``) are typed as NumPy
-arrays, because NumPy's type stubs type all operators that way.
+collect it.
+
+Arithmetic on quantities gives a Quantity, and a unit combined with a unit gives a
+Unit. Two cases where the types are approximate: a result whose dimensions cancel,
+like ``(3 * mV) / (1 * mV)``, is a plain number at run time (as everywhere in
+QuantSI), and pyright (unlike mypy) types ``array * unit`` as a plain array, because
+it uses the array's operator; ``unit * array`` gives a Quantity in both.
 """
 
 from typing import assert_type
 
+import numpy as np
+
 from QuantSI import (
     Quantity,
     Unit,
+    amp,
     get_dimensions,
+    metre,
+    mV,
     mvolt,
     parse_dimensions,
+    second,
     uV,
     volt,
 )
@@ -35,3 +46,22 @@ def needs_a_quantity(q: Quantity) -> str:
 
 
 needs_a_quantity(mvolt)  # a Unit is a Quantity
+
+# Arithmetic on quantities gives quantities ...
+assert_type(3 * mV, Quantity)
+assert_type(mV * 3, Quantity)
+assert_type(3 * mV + 4 * mV, Quantity)
+assert_type((3 * mV) - (1 * mV), Quantity)
+assert_type((3 * mV) / (1 * second), Quantity)
+assert_type((3 * mV) ** 2, Quantity)
+assert_type(-(3 * mV), Quantity)
+assert_type(abs(3 * mV), Quantity)
+assert_type(metre * np.ones(3), Quantity)
+needs_a_quantity(3 * mV + 4 * mV)
+assert_type((3 * mV + 4 * mV).in_unit(volt), str)
+
+# ... and units combined with units give units.
+assert_type(volt * amp, Unit)
+assert_type(volt / amp, Unit)
+assert_type(volt**2, Unit)
+assert_type(3 * volt, Quantity)

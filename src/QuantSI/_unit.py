@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, overload
+
 import numpy as np
 
 from ._dimension import DIMENSIONLESS, Dimension, _siprefixes, is_dimensionless, is_scalar_type
 from ._quantity import Quantity
 from ._registry import register_new_unit
 from ._utils import _latex_number
+
+if TYPE_CHECKING:
+    from numpy.typing import ArrayLike
 
 
 class Unit(Quantity):
@@ -108,6 +113,21 @@ class Unit(Quantity):
     __slots__ = ["dim", "scale", "_dispname", "_name", "_latexname", "iscompound"]
 
     __array_priority__ = 100
+
+    if TYPE_CHECKING:
+        # Only type checkers see these (see Quantity): a unit combined with a unit
+        # gives a unit (volt * amp, volt / amp, volt ** 2), anything else a Quantity.
+        @overload  # type: ignore[override]
+        def __mul__(self, other: Unit, /) -> Unit: ...
+        @overload
+        def __mul__(self, other: ArrayLike, /) -> Quantity: ...
+        def __mul__(self, other: Any, /) -> Any: ...
+        @overload  # type: ignore[override]
+        def __truediv__(self, other: Unit, /) -> Unit: ...
+        @overload
+        def __truediv__(self, other: ArrayLike, /) -> Quantity: ...
+        def __truediv__(self, other: Any, /) -> Any: ...
+        def __pow__(self, other: ArrayLike, /) -> Unit: ...  # type: ignore[override, unused-ignore]  # NumPy 2.5's stubs need it, 2.2's don't
 
     automatically_register_units = True
 
