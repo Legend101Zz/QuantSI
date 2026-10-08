@@ -5,6 +5,7 @@ import pytest
 
 from QuantSI.allunits import metre, mvolt, ohm, second, volt
 from QuantSI.fundamentalunits import Quantity, Unit
+from QuantSI.stdunits import mV
 
 CASES = [
     # (expression, expected type, expected value in SI, expected dimension)
@@ -27,3 +28,13 @@ def test_unit_arithmetic(expression, kind, value, dim):
     assert type(result) is kind
     assert result.dim is dim
     np.testing.assert_allclose(np.asarray(result), value)
+
+
+@pytest.mark.parametrize(
+    ("left", "right"),
+    [(volt, volt), (volt, mvolt), (mvolt, mV), (volt, ohm), (metre, second)],
+)
+def test_unit_inequality_is_the_opposite_of_equality(left, right):
+    # Units compare by dimension and scale, so units of different kinds are simply
+    # not equal (`volt != ohm` used to raise DimensionMismatchError instead).
+    assert (left != right) is (not (left == right))
