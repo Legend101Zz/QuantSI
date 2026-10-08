@@ -2,6 +2,9 @@
 
 `format_quantity` is the one place that writes a quantity as text; ``str``,
 ``repr``, ``format``, ``in_unit`` and ``in_best_unit`` all go through it.
+
+In this file: ``format_quantity`` (the core) and its helper ``_with_unit``,
+``format_quantity_latex``, and the module-level ``in_unit`` and ``in_best_unit``.
 """
 
 from __future__ import annotations

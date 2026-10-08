@@ -18,6 +18,16 @@ which looks the function up here. Every function is in one bucket:
 
 A function only goes into a bucket once a case in test_array_functions.py shows
 that it belongs there.
+
+In this file, in order:
+
+1. the four buckets, ``implements``, and the helpers that
+   ``Quantity.__array_function__`` uses (``strip_units``, ``unsupported_reason``,
+   ``unsupported_message``)
+2. what goes into ``SUBCLASS_SAFE``, ``UNIT_FREE`` and ``UNSUPPORTED``
+3. the ``HANDLED`` implementations, by topic: joining and reshaping; selecting,
+   writing and set operations; comparing and summarising; products and linear
+   algebra; functions of dimensionless numbers
 """
 
 from collections.abc import Callable

@@ -4,6 +4,8 @@ Besides checking units when the function is called, check_units stores some
 information on the function it wraps (``_arg_units``, ``_arg_names``,
 ``_return_unit``, ``_returns_bool``, ``_orig_func``, ``_orig_arg_names``).
 Brian2's code generation reads these attributes, so don't rename them.
+
+In this file: ``check_units``.
 """
 
 from __future__ import annotations

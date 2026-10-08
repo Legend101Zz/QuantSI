@@ -1,4 +1,14 @@
-"""The Unit class: a named, scaled quantity such as ``mvolt``."""
+"""The Unit class: a named, scaled quantity such as ``mvolt``.
+
+A unit is a Quantity with a name (``mvolt``), a display name (``mV``), a LaTeX name
+and a scale (the power of ten: -3 for milli). A new Unit registers itself for
+display (in the user registry) unless ``Unit.automatically_register_units`` is
+off; allunits.py turns it off while it builds its units with ``Unit.create``, and
+then adds them all to the standard registry.
+
+In this file: the Unit class, with its methods under these headings: creating
+units, names, text, arithmetic, and comparison and hashing.
+"""
 
 from __future__ import annotations
 

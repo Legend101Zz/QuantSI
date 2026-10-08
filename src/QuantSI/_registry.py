@@ -4,6 +4,10 @@ There are three of them, shared by the whole process, and they are searched in
 this order: the standard units, units registered by the user, and extra
 (compound) units. The goal is the unit in which a value reads best: ``3. mV``
 rather than ``0.003 V``.
+
+In this file: the ``UnitRegistry`` class, the three registries,
+``register_new_unit``, ``get_unit`` (a unit for a dimension, made up if none is
+registered) and ``get_unit_for_display`` (that unit's name as text).
 """
 
 from __future__ import annotations

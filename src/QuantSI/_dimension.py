@@ -4,6 +4,18 @@ A `Dimension` says what kind of quantity something is (a length, a voltage,
 ...), not how much of it there is. `get_or_create_dimension` makes sure there is
 only one `Dimension` object for each combination of exponents, so checking
 whether two things have the same dimensions is just ``dim1 is dim2``.
+
+In this file, in order:
+
+1. the SI base units and prefixes (``_di``, ``_ilabel``, ``_iclass_label``,
+   ``_siprefixes``)
+2. the ``Dimension`` class
+3. ``DIMENSIONLESS`` and ``get_or_create_dimension``, which hands out the one
+   ``Dimension`` object for each set of exponents
+4. the caches that remember the results of ``Dimension`` arithmetic
+5. helpers that work on any object: ``is_scalar_type``, ``get_dimensions``,
+   ``is_dimensionless``, ``have_same_dimensions`` and
+   ``fail_for_dimension_mismatch``
 """
 
 from __future__ import annotations
@@ -70,7 +82,7 @@ _ilabel = ["m", "kg", "s", "A", "K", "mol", "cd"]
 # The same labels with the names used for constructing them in Python code
 _iclass_label = ["metre", "kilogram", "second", "amp", "kelvin", "mole", "candle"]
 
-# SI unit _prefixes as integer exponents of 10, see table at end of file.
+# The SI prefixes, as powers of ten (milli is -3).
 _siprefixes = {
     "y": -24,
     "z": -21,
@@ -304,6 +316,8 @@ class Dimension:
 #: The singleton object for dimensionless Dimensions.
 DIMENSIONLESS = Dimension((0, 0, 0, 0, 0, 0, 0))
 
+#: The one Dimension object for each set of exponents; get_or_create_dimension
+#: fills it.
 _dimensions = {(0, 0, 0, 0, 0, 0, 0): DIMENSIONLESS}
 
 

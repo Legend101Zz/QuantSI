@@ -1,4 +1,13 @@
-"""Small helpers shared by QuantSI's internal modules."""
+"""Small helpers shared by QuantSI's internal modules.
+
+In this file:
+
+- ``set_module`` and ``numpy_docstring``: decorators that set a function's
+  ``__module__`` (pickles record it) and give a method NumPy's docstring
+- ``_flatten`` and ``_short_str``: flatten nested lists, and short text for error
+  messages
+- ``_latex_number``: write a number in LaTeX the way SymPy did
+"""
 
 import math
 import numbers

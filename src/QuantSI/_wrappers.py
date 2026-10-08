@@ -2,6 +2,9 @@
 
 Each wrapper attaches the ``_arg_units``/``_return_unit`` metadata that Brian2's
 code generation reads (as `check_units` does). From Brian2's fundamentalunits.
+
+In this file: ``wrap_function_dimensionless``, ``wrap_function_change_dimensions``
+and ``wrap_function_remove_dimensions``.
 """
 
 import numpy as np

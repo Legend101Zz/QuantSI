@@ -4,6 +4,16 @@
 object itself rather than by its name: aliases such as ``np.divide`` and
 ``np.true_divide`` are the same object and cannot disagree, and a lookup is a
 single dictionary access instead of scanning lists of names.
+
+In this file, in order:
+
+1. ``Rule``, ``RULES`` and ``UNSUPPORTED_REASONS``: what each ufunc does with
+   dimensions
+2. one handler function per rule, in the order of ``Rule``, and ``HANDLERS``,
+   which maps each ufunc to its handler (``Quantity.__array_ufunc__`` looks it up
+   there)
+3. ``check_method``: when ``accumulate``, ``reduceat`` and ``at`` are allowed
+4. the old ``UFUNCS_*`` name lists, kept only because other code imports them
 """
 
 import enum

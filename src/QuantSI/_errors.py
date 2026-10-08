@@ -1,4 +1,9 @@
-"""Exceptions raised by QuantSI."""
+"""The exceptions and the warning that QuantSI raises.
+
+In this file: ``DimensionMismatchError`` (dimensions that don't fit),
+``QuantSIWarning`` (a NumPy function QuantSI hasn't reviewed yet) and
+``QuantityParseError`` (text that ``parse_quantity`` can't read).
+"""
 
 
 class DimensionMismatchError(Exception):

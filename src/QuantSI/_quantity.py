@@ -3,6 +3,16 @@
 Values are always stored in base SI units, and ``.dim`` points to the shared
 `Dimension` object. NumPy calls ``Quantity.__array_ufunc__`` for arithmetic, and
 that's where dimensions are checked and combined.
+
+In this file, in order:
+
+1. ``wrap_function_keep_dimensions`` (used for a few methods, and by
+   unitsafefunctions), ``quantity_with_dimensions`` (what pickles call to rebuild
+   a Quantity) and ``_new_quantity`` (the fast way to wrap a NumPy result)
+2. the Quantity class, with its methods under these headings: creating
+   quantities, the NumPy hooks, dimensions, units and text, getting and setting
+   items, comparisons, copying and pickling, and NumPy methods that need help
+   with units
 """
 
 from __future__ import annotations

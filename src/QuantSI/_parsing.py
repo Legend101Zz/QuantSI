@@ -8,6 +8,10 @@ text is turned into a Python syntax tree with ``ast.parse``, and the tree is
 walked node by node. A node of any other kind (a function call, an attribute, a
 subscript, a comprehension, ...) is refused before anything is evaluated, so
 nothing in the text is ever executed.
+
+In this file, in order: the limits and ``GRAMMAR``, ``default_namespace`` (all
+unit names), ``parse_quantity`` and ``parse_dimensions``, and the evaluator
+(``_evaluate`` and its helpers, including the "Did you mean ...?" suggestions).
 """
 
 from __future__ import annotations
