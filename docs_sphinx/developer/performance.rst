@@ -9,11 +9,11 @@ benchmarks measure.
 Benchmarks
 ----------
 
-``src/QuantSI/tests/benchmarks`` contains pytest-benchmark benchmarks of the
+``tests/benchmarks`` contains pytest-benchmark benchmarks of the
 operations every user pays for. Normal test runs execute each of them once, so
 they keep working; to measure::
 
-    pytest src/QuantSI/tests/benchmarks --benchmark-enable --benchmark-only
+    pytest tests/benchmarks --benchmark-enable --benchmark-only
 
 Absolute timings on CI machines vary too much to be compared between runs, so
 CI checks *ratios* instead: ``test_overhead_ratio.py`` (run with

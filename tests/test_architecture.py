@@ -12,7 +12,9 @@ import pathlib
 
 import pytest
 
-PACKAGE = pathlib.Path(__file__).parent.parent
+import QuantSI
+
+PACKAGE = pathlib.Path(QuantSI.__file__).parent
 
 #: Bottom-up. Add new private modules here, at the lowest layer that works.
 LAYERS = [

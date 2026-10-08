@@ -62,7 +62,9 @@ happens on that rare path.
 
 ``QuantSI.unitsafefunctions`` (public, from Brian2) holds unit-aware versions of
 ``sin``, ``exp``, ``arange``, ... with the metadata Brian2's code generation
-reads. ``tools/`` holds the code generator for the unit modules
+reads. The tests live in ``tests/`` at the top of the repository, outside the package, so
+they aren't installed with QuantSI; ``conftest.py`` next to them sets up the tests
+and the doctests. ``tools/`` holds the code generator for the unit modules
 (``generate_units.py``), the scripts that write the test fixtures, and the
 Brian2 integration used in CI (``tools/brian2``).
 

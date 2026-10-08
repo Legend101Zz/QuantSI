@@ -18,7 +18,7 @@ import QuantSI
 SNAPSHOT = json.loads((pathlib.Path(__file__).parent / "data" / "public_api.json").read_text())
 
 #: The modules users may import. Any other module must be private (a name
-#: starting with an underscore, like QuantSI._quantity) or part of the tests.
+#: starting with an underscore, like QuantSI._quantity).
 PUBLIC_MODULES = {
     "QuantSI",
     "QuantSI.allunits",
@@ -27,7 +27,6 @@ PUBLIC_MODULES = {
     "QuantSI.stdunits",
     "QuantSI.unitsafefunctions",
 }
-NOT_API = {"QuantSI.conftest", "QuantSI.tests"}
 
 
 @pytest.mark.parametrize("module_name", sorted(SNAPSHOT))
@@ -48,8 +47,6 @@ def test_no_unexpected_public_modules():
     found = {"QuantSI"}
     for info in pkgutil.walk_packages(QuantSI.__path__, prefix="QuantSI."):
         name = info.name
-        if any(name == m or name.startswith(m + ".") for m in NOT_API):
-            continue
         if any(part.startswith("_") for part in name.split(".")):
             continue
         found.add(name)

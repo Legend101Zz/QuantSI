@@ -5,7 +5,7 @@ import pathlib
 
 import pytest
 
-ROOT = pathlib.Path(__file__).parents[3]
+ROOT = pathlib.Path(__file__).parents[1]
 USER_DOCS = ROOT / "docs_sphinx" / "user"
 
 

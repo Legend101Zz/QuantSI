@@ -36,7 +36,7 @@ PRIVATE_BUT_PRESENT = {
     ],
 }
 
-OUTPUT = pathlib.Path(__file__).parent.parent / "src/QuantSI/tests/data/public_api.json"
+OUTPUT = pathlib.Path(__file__).parent.parent / "tests/data/public_api.json"
 
 
 def is_own_public_name(module, name):

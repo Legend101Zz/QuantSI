@@ -16,7 +16,7 @@ from QuantSI import DimensionMismatchError, ms, mV, nA, volt
 from QuantSI.allunits import metre, mvolt
 from QuantSI.fundamentalunits import DIMENSIONLESS
 
-OUTPUT = pathlib.Path(__file__).parent.parent / "src/QuantSI/tests/data/pickles.json"
+OUTPUT = pathlib.Path(__file__).parent.parent / "tests/data/pickles.json"
 
 CASES = {
     "scalar_quantity": 3 * mV,

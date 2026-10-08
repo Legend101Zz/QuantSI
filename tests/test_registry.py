@@ -74,8 +74,8 @@ def test_registering_a_unit_updates_the_choice():
 
 
 def test_registrations_are_undone_between_tests():
+    from conftest import preserved_unit_registries
     from QuantSI.allunits import mmetre, pfarad
-    from QuantSI.conftest import preserved_unit_registries
     from QuantSI.fundamentalunits import register_new_unit
 
     q = 2.0 * farad / metre**2

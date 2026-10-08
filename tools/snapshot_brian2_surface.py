@@ -25,7 +25,7 @@ MODULES = [
     "brian2.units.unitsafefunctions",
 ]
 
-OUTPUT = pathlib.Path(__file__).parent.parent / "src/QuantSI/tests/data/brian2_units_surface.json"
+OUTPUT = pathlib.Path(__file__).parent.parent / "tests/data/brian2_units_surface.json"
 
 
 def is_own_name(module, name):

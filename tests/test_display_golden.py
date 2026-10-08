@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 GOLDEN = pathlib.Path(__file__).parent / "data" / "display_golden.txt"
+ROOT = pathlib.Path(__file__).parents[1]
 
 
 def test_display_output_matches_golden_file():
@@ -13,9 +14,10 @@ def test_display_output_matches_golden_file():
         [
             sys.executable,
             "-c",
-            "from QuantSI.tests.display_cases import render; print(render(), end='')",
+            "from tests.display_cases import render; print(render(), end='')",
         ],
         capture_output=True,
+        cwd=ROOT,  # so that the tests package can be imported
         text=True,
         check=True,
     )

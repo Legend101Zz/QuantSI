@@ -57,7 +57,7 @@ write_template = "__version__ = '{}'"
 
 [tool.pytest.ini_options]
 minversion = "8.3"
-testpaths = ["src/QuantSI"]
+testpaths = ["tests", "src/QuantSI"]
 addopts = [
     "-ra",
     "--strict-markers",
@@ -92,14 +92,8 @@ combine-as-imports = true
 docstring-code-format = true
 
 [tool.mypy]
-files = ["src/QuantSI"]
 # Type-check the package and the typing examples, not the test suite.
-exclude = [
-    'src/QuantSI/conftest\.py$',
-    'src/QuantSI/tests/test_.*\.py$',
-    'src/QuantSI/tests/benchmarks/',
-    'src/QuantSI/tests/display_cases\.py$',
-]
+files = ["src/QuantSI", "tests/typing_examples.py"]
 warn_unused_ignores = true
 warn_redundant_casts = true
 

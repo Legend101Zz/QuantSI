@@ -3,7 +3,7 @@
 In a normal test run each benchmark runs just once, as a plain test
 (``--benchmark-disable`` in pyproject.toml), so they keep working. To measure::
 
-    pytest src/QuantSI/tests/benchmarks --benchmark-enable --benchmark-only
+    pytest tests/benchmarks --benchmark-enable --benchmark-only
 
 To compare with an earlier run, save it with ``--benchmark-autosave`` and pass
 ``--benchmark-compare`` next time. The numbers only mean something when you

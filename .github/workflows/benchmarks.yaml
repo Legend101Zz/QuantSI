@@ -24,7 +24,7 @@ jobs:
     # To look into a slowdown, compare the files of two runs.
     - name: Run benchmarks
       run: |
-        pdm run pytest src/QuantSI/tests/benchmarks --benchmark-enable --benchmark-only --benchmark-json=benchmarks.json
+        pdm run pytest tests/benchmarks --benchmark-enable --benchmark-only --benchmark-json=benchmarks.json
 
     - name: Check overhead against plain NumPy
       run: |
