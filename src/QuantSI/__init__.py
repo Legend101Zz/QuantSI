@@ -9,8 +9,8 @@ QuantSI.stdunits (see the "Unit names" page of the documentation).
 # isort:skip_file
 from ._version import __version__ as __version__
 
-from ._errors import QuantityParseError
-from ._parsing import parse_dimensions, parse_quantity
+from ._core.errors import QuantityParseError
+from ._core.parsing import parse_dimensions, parse_quantity
 from .fundamentalunits import (
     DimensionMismatchError,
     QuantSIWarning,

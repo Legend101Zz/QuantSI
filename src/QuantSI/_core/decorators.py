@@ -16,10 +16,10 @@ from typing import Any, TypeVar
 
 import numpy as np
 
-from ._dimension import get_dimensions, have_same_dimensions
-from ._errors import DimensionMismatchError
-from ._quantity import Quantity
-from ._registry import get_unit_for_display
+from .dimension import get_dimensions, have_same_dimensions
+from .errors import DimensionMismatchError
+from .quantity import Quantity
+from .registry import get_unit_for_display
 
 _Function = TypeVar("_Function", bound=Callable[..., Any])
 

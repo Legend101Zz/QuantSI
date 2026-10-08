@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 
 from QuantSI import mV, volt
-from QuantSI._utils import _latex_number
+from QuantSI._core.utils import _latex_number
 from QuantSI.allunits import metre, second
 
 

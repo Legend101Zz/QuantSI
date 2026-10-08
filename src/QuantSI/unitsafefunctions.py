@@ -12,10 +12,10 @@ from functools import wraps
 
 import numpy as np
 
-from ._decorators import check_units
-from ._dimension import DIMENSIONLESS, fail_for_dimension_mismatch, is_dimensionless
-from ._quantity import Quantity, wrap_function_keep_dimensions
-from ._wrappers import wrap_function_dimensionless, wrap_function_remove_dimensions
+from ._core.decorators import check_units
+from ._core.dimension import DIMENSIONLESS, fail_for_dimension_mismatch, is_dimensionless
+from ._core.quantity import Quantity, wrap_function_keep_dimensions
+from ._core.wrappers import wrap_function_dimensionless, wrap_function_remove_dimensions
 
 __all__ = [
     "log",

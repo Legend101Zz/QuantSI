@@ -20,7 +20,7 @@ import enum
 
 import numpy as np
 
-from ._dimension import DIMENSIONLESS, fail_for_dimension_mismatch, get_dimensions
+from .dimension import DIMENSIONLESS, fail_for_dimension_mismatch, get_dimensions
 
 
 class Rule(enum.Enum):

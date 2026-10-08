@@ -26,38 +26,43 @@ Users import from these, and names never disappear from them
 Private modules
 ---------------
 
+All of QuantSI's internals live in one folder, ``src/QuantSI/_core/``. The
+underscore in the folder's name marks everything inside as private, so the files
+themselves don't need one (NumPy organises its internals the same way, in
+``numpy._core``). Each file's docstring ends with a short list of what's in it.
+
 They are listed from the bottom up: at the top of a file, a module may only
 import the modules listed *above* it (``tests/test_architecture.py`` checks
 this). When a module needs one listed below it, for example to build an error
 message, it imports it inside the function that needs it, so the import only
 happens on that rare path.
 
-``_utils``
+``_core.utils``
     Small helpers (``set_module``, list flattening, short array strings).
-``_errors``
+``_core.errors``
     The exception classes.
-``_dimension``
+``_core.dimension``
     ``Dimension``, the intern cache and ``DIMENSIONLESS``, plus the functions
     that get and compare the dimensions of arbitrary objects.
-``_registry``
+``_core.registry``
     The three unit registries used to pick a display unit.
-``_ufuncs``
+``_core.ufuncs``
     The rule for every NumPy ufunc (``RULES``) and one handler per rule.
-``_array_functions``
+``_core.array_functions``
     How every other NumPy function treats quantities (``__array_function__``):
     the four buckets and QuantSI's implementations.
-``_quantity``
+``_core.quantity``
     The ``Quantity`` class.
-``_unit``
+``_core.unit``
     The ``Unit`` class.
-``_formatting``
+``_core.formatting``
     Turning quantities into text: ``format_quantity`` (``str``, ``repr``,
     ``format``, ``in_unit``) and ``format_quantity_latex``.
-``_parsing``
+``_core.parsing``
     Reading quantities from text (``parse_quantity``) without ``eval``.
-``_decorators``
+``_core.decorators``
     ``check_units``.
-``_wrappers``
+``_core.wrappers``
     The ``wrap_function_*`` helpers that ``unitsafefunctions`` is built from.
 
 ``QuantSI.unitsafefunctions`` (public, from Brian2) holds unit-aware versions of
@@ -78,7 +83,7 @@ Rules that keep the package correct
 * **Re-export explicitly.** Compatibility namespaces use ``from ._x import name as name``
   so that linters and type checkers know the import is on purpose.
 * **Pickle paths are public API.** Functions that pickles refer to keep their
-  old ``__module__`` through ``_utils.set_module``. ``tests/test_pickle_compat.py``
+  old ``__module__`` through ``_core.utils.set_module``. ``tests/test_pickle_compat.py``
   checks this with pickles written before the code moved.
 * **Metadata names are an interface.** ``check_units`` sets ``_arg_units``,
   ``_return_unit`` and a few more attributes on the functions it wraps, and

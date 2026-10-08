@@ -14,9 +14,9 @@ from typing import Any
 
 import numpy as np
 
-from ._dimension import fail_for_dimension_mismatch, is_dimensionless
-from ._quantity import Quantity
-from ._unit import Unit
+from .dimension import fail_for_dimension_mismatch, is_dimensionless
+from .quantity import Quantity
+from .unit import Unit
 
 
 def format_quantity(

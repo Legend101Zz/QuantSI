@@ -24,12 +24,12 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from ._dimension import get_dimensions
-from ._errors import QuantityParseError
+from .dimension import get_dimensions
+from .errors import QuantityParseError
 
 if TYPE_CHECKING:
-    from ._dimension import Dimension
-    from ._quantity import Quantity
+    from .dimension import Dimension
+    from .quantity import Quantity
 
 MAX_LENGTH = 500  #: characters
 MAX_NODES = 200  #: syntax-tree nodes
@@ -44,7 +44,7 @@ GRAMMAR = (
 @functools.cache
 def default_namespace():
     """All unit names: those of QuantSI.allunits and QuantSI.stdunits."""
-    from . import allunits, stdunits
+    from .. import allunits, stdunits
 
     names = {name: getattr(allunits, name) for name in allunits.__all__}
     names.update({name: getattr(stdunits, name) for name in stdunits.__all__})

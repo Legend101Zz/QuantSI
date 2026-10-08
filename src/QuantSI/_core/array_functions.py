@@ -34,8 +34,8 @@ from collections.abc import Callable
 
 import numpy as np
 
-from ._dimension import DIMENSIONLESS, fail_for_dimension_mismatch, get_dimensions
-from ._errors import DimensionMismatchError
+from .dimension import DIMENSIONLESS, fail_for_dimension_mismatch, get_dimensions
+from .errors import DimensionMismatchError
 
 SUBCLASS_SAFE: set[Callable] = set()
 UNIT_FREE: set[Callable] = set()

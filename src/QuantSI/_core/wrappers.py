@@ -9,8 +9,8 @@ and ``wrap_function_remove_dimensions``.
 
 import numpy as np
 
-from ._dimension import fail_for_dimension_mismatch
-from ._quantity import Quantity
+from .dimension import fail_for_dimension_mismatch
+from .quantity import Quantity
 
 
 def wrap_function_dimensionless(func):

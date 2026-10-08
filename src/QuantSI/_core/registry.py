@@ -18,10 +18,10 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from ._dimension import DIMENSIONLESS, Dimension
+from .dimension import DIMENSIONLESS, Dimension
 
 if TYPE_CHECKING:
-    from ._unit import Unit
+    from .unit import Unit
 
 
 class UnitRegistry:
@@ -165,7 +165,7 @@ def get_unit(d: Dimension) -> Unit:
         A registered unscaled `Unit` for the dimensions ``d``, or a new `Unit`
         if no unit was found.
     """
-    from ._unit import Unit
+    from .unit import Unit
 
     for unit_register in [
         standard_unit_register,

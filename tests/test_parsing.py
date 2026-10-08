@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from QuantSI._errors import QuantityParseError
-from QuantSI._parsing import MAX_LENGTH, parse_dimensions, parse_quantity
+from QuantSI._core.errors import QuantityParseError
+from QuantSI._core.parsing import MAX_LENGTH, parse_dimensions, parse_quantity
 from QuantSI.allunits import (
     amp,
     cmetre,

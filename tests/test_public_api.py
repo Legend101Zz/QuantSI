@@ -18,7 +18,7 @@ import QuantSI
 SNAPSHOT = json.loads((pathlib.Path(__file__).parent / "data" / "public_api.json").read_text())
 
 #: The modules users may import. Any other module must be private (a name
-#: starting with an underscore, like QuantSI._quantity).
+#: starting with an underscore, like QuantSI._core).
 PUBLIC_MODULES = {
     "QuantSI",
     "QuantSI.allunits",

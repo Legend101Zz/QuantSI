@@ -28,7 +28,7 @@ from numpy.exceptions import VisibleDeprecationWarning
 if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
-from ._array_functions import (
+from .array_functions import (
     HANDLED,
     SUBCLASS_SAFE,
     UNIT_FREE,
@@ -36,7 +36,7 @@ from ._array_functions import (
     unsupported_message,
     unsupported_reason,
 )
-from ._dimension import (
+from .dimension import (
     DIMENSIONLESS,
     Dimension,
     fail_for_dimension_mismatch,
@@ -44,15 +44,15 @@ from ._dimension import (
     get_or_create_dimension,
     is_scalar_type,
 )
-from ._errors import DimensionMismatchError, QuantSIWarning
-from ._registry import (
+from .errors import DimensionMismatchError, QuantSIWarning
+from .registry import (
     UnitRegistry,
     additional_unit_register,
     standard_unit_register,
     user_unit_register,
 )
-from ._ufuncs import HANDLERS, check_method
-from ._utils import _flatten, numpy_docstring, set_module
+from .ufuncs import HANDLERS, check_method
+from .utils import _flatten, numpy_docstring, set_module
 
 
 def wrap_function_keep_dimensions(func):
@@ -349,7 +349,7 @@ class Quantity(np.ndarray):
         * A plain ndarray output receives the values in base SI units.
         * Units cannot be used as outputs: they are shared constants.
         """
-        from ._unit import Unit
+        from .unit import Unit
 
         (out,) = kwargs["out"]
         if isinstance(out, Unit):
@@ -366,7 +366,7 @@ class Quantity(np.ndarray):
         return out
 
     def __array_function__(self, func, types, args, kwargs):
-        # NEP 18: called for NumPy functions such as np.concatenate; see _array_functions.
+        # NEP 18: called for NumPy functions such as np.concatenate; see array_functions.py.
         if func in SUBCLASS_SAFE:
             return super().__array_function__(func, types, args, kwargs)
         if not all(issubclass(t, np.ndarray) for t in types):
@@ -464,7 +464,7 @@ class Quantity(np.ndarray):
         in_unit
         """
 
-        from ._formatting import format_quantity
+        from .formatting import format_quantity
 
         fail_for_dimension_mismatch(self, u, 'Non-matching unit for method "in_unit"')
         return format_quantity(self, u, precision=precision, python_code=python_code)
@@ -484,7 +484,7 @@ class Quantity(np.ndarray):
             u : `Quantity` or `Unit`
                 The best-fitting unit for the quantity `x`.
         """
-        from ._unit import Unit
+        from .unit import Unit
 
         if self.is_dimensionless:
             return Unit(1)
@@ -549,7 +549,7 @@ class Quantity(np.ndarray):
         --------
         in_best_unit
         """
-        from ._formatting import format_quantity
+        from .formatting import format_quantity
 
         u = self.get_best_unit(*regs)
         return format_quantity(self, u, precision=precision, python_code=python_code)
@@ -562,7 +562,7 @@ class Quantity(np.ndarray):
 
     def __format__(self, format_spec):
         """``f"{q:.2f}"`` formats the number(s) in the best unit and adds the unit."""
-        from ._formatting import format_quantity
+        from .formatting import format_quantity
 
         if format_spec == "":
             return str(self)
@@ -571,7 +571,7 @@ class Quantity(np.ndarray):
     def _latex(self, *args):
         """LaTeX for this quantity; SymPy's ``latex()`` calls this too (passing its
         printer, which is not needed). See `format_quantity_latex`."""
-        from ._formatting import format_quantity_latex
+        from .formatting import format_quantity_latex
 
         return format_quantity_latex(self)
 
@@ -670,7 +670,7 @@ class Quantity(np.ndarray):
 
     # (Without these, ndarray's methods would return indices labelled with the
     # quantity's dimensions. NumPy functions such as np.argsort are handled in
-    # _array_functions.)
+    # array_functions.py.)
     def argmax(self, *args, **kwds):
         """Like `numpy.ndarray.argmax`; returns plain indices."""
         return np.asarray(self).argmax(*args, **kwds)

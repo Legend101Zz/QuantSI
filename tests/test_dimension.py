@@ -61,7 +61,7 @@ def test_cached_arithmetic_matches_direct_computation(dim1, dim2):
 
 
 def test_cache_entries_keep_their_operands_alive():
-    from QuantSI import _dimension
+    from QuantSI._core import dimension as _dimension
 
     dim1 = get_or_create_dimension(m=7, kg=-3)
     product = dim1 * volt.dim
@@ -70,7 +70,7 @@ def test_cache_entries_keep_their_operands_alive():
 
 
 def test_full_cache_still_computes(monkeypatch):
-    from QuantSI import _dimension
+    from QuantSI._core import dimension as _dimension
 
     monkeypatch.setattr(_dimension, "_MAX_CACHE_ENTRIES", 0)
     monkeypatch.setattr(_dimension, "_products", {})

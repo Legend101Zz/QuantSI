@@ -5,7 +5,7 @@ import importlib
 import pytest
 
 from QuantSI import allunits, stdunits
-from QuantSI._dimension import _siprefixes
+from QuantSI._core.dimension import _siprefixes
 
 PUBLIC_MODULES = ["QuantSI", "QuantSI.allunits", "QuantSI.stdunits", "QuantSI.fundamentalunits"]
 

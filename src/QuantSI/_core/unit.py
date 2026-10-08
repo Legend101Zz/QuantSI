@@ -16,10 +16,10 @@ from typing import TYPE_CHECKING, Any, overload
 
 import numpy as np
 
-from ._dimension import DIMENSIONLESS, Dimension, _siprefixes, is_dimensionless, is_scalar_type
-from ._quantity import Quantity
-from ._registry import register_new_unit
-from ._utils import _latex_number
+from .dimension import DIMENSIONLESS, Dimension, _siprefixes, is_dimensionless, is_scalar_type
+from .quantity import Quantity
+from .registry import register_new_unit
+from .utils import _latex_number
 
 if TYPE_CHECKING:
     from numpy.typing import ArrayLike

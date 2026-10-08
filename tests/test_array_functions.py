@@ -18,7 +18,8 @@ import warnings
 import numpy as np
 import pytest
 
-from QuantSI import DimensionMismatchError, _array_functions
+from QuantSI import DimensionMismatchError
+from QuantSI._core import array_functions as _array_functions
 from QuantSI.allunits import metre, second
 from QuantSI.fundamentalunits import DIMENSIONLESS, Quantity
 
@@ -726,7 +727,7 @@ def test_unknown_functions_run_with_a_warning(monkeypatch):
     monkeypatch.setattr(
         _array_functions, "SUBCLASS_SAFE", _array_functions.SUBCLASS_SAFE - {np.sum}
     )
-    from QuantSI import _quantity
+    from QuantSI._core import quantity as _quantity
 
     monkeypatch.setattr(_quantity, "SUBCLASS_SAFE", _array_functions.SUBCLASS_SAFE)
     with pytest.warns(QuantSIWarning, match="numpy.sum has not been reviewed"):

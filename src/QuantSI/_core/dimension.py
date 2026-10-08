@@ -25,8 +25,8 @@ from typing import Any
 
 import numpy as np
 
-from ._errors import DimensionMismatchError
-from ._utils import _short_str, set_module
+from .errors import DimensionMismatchError
+from .utils import _short_str, set_module
 
 # The seven SI base dimensions (length, mass, time, current, temperature,
 # amount of substance, luminosity) and various descriptions;
@@ -458,7 +458,7 @@ def get_dimensions(obj: Any) -> Dimension:
             np.bool_,
         ] or isinstance(obj, (numbers.Number, np.number, np.ndarray)):
             return DIMENSIONLESS
-        from ._quantity import Quantity
+        from .quantity import Quantity
 
         try:
             return Quantity(obj).dim
@@ -575,7 +575,7 @@ def fail_for_dimension_mismatch(
             error_message = error_message.format(**error_quantities)
         # If we are comparing an object to a specific unit, we don't want to
         # restate this unit (it is probably mentioned in the text already)
-        from ._unit import Unit
+        from .unit import Unit
 
         if obj2 is None or isinstance(obj2, (Dimension, Unit)):
             raise DimensionMismatchError(error_message, dim1)

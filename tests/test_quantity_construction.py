@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from QuantSI._quantity import _new_quantity
+from QuantSI._core.quantity import _new_quantity
 from QuantSI.allunits import volt
 from QuantSI.fundamentalunits import DIMENSIONLESS, Quantity
 

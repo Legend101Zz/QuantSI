@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from QuantSI._formatting import format_quantity
+from QuantSI._core.formatting import format_quantity
 from QuantSI.allunits import mvolt, volt
 
 

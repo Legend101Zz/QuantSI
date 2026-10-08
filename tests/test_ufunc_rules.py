@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from QuantSI import _ufuncs
-from QuantSI._ufuncs import RULES, Rule
+from QuantSI._core import ufuncs as _ufuncs
+from QuantSI._core.ufuncs import RULES, Rule
 
 #: Which rules each old list stands for.
 LEGACY_LISTS = {
