@@ -118,6 +118,14 @@ class UnitRegistry:
         return matching_units[deviations.argmin()]
 
 
+#: `UnitRegistry` containing all the standard units (metre, kilogram, um2...)
+standard_unit_register = UnitRegistry()
+#: `UnitRegistry` containing additional units (newton*metre, farad / metre, ...)
+additional_unit_register = UnitRegistry()
+#: `UnitRegistry` containing all units defined by the user
+user_unit_register = UnitRegistry()
+
+
 def register_new_unit(u: Unit) -> None:
     """Register a new unit for automatic displaying of quantities
 
@@ -136,14 +144,6 @@ def register_new_unit(u: Unit) -> None:
     2000000. * pfarad / (mmetre ** 2)
     """
     user_unit_register.add(u)
-
-
-#: `UnitRegistry` containing all the standard units (metre, kilogram, um2...)
-standard_unit_register = UnitRegistry()
-#: `UnitRegistry` containing additional units (newton*metre, farad / metre, ...)
-additional_unit_register = UnitRegistry()
-#: `UnitRegistry` containing all units defined by the user
-user_unit_register = UnitRegistry()
 
 
 def get_unit(d: Dimension) -> Unit:

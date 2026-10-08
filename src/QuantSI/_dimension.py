@@ -307,23 +307,6 @@ DIMENSIONLESS = Dimension((0, 0, 0, 0, 0, 0, 0))
 _dimensions = {(0, 0, 0, 0, 0, 0, 0): DIMENSIONLESS}
 
 
-#: Caches for Dimension arithmetic, keyed by the operands' ``id()``. An id is only
-#: unique while its object is alive, so every entry also holds the operands
-#: themselves: while the entry exists, no other object can get the same id.
-#: (Interned dimensions live for the whole process anyway.)
-_products: dict[tuple[int, int], tuple] = {}
-_quotients: dict[tuple[int, int], tuple] = {}
-_powers: dict[tuple[int, float], tuple] = {}
-_MAX_CACHE_ENTRIES = 4096  # per cache; beyond that, results are computed every time
-
-
-def _remember(cache, key, entry):
-    """Store ``entry`` (operands..., result) unless the cache is full; return the result."""
-    if len(cache) < _MAX_CACHE_ENTRIES:
-        cache[key] = entry
-    return entry[-1]
-
-
 @set_module("QuantSI.fundamentalunits")
 def get_or_create_dimension(*args, **kwds) -> Dimension:
     """
@@ -386,6 +369,23 @@ def get_or_create_dimension(*args, **kwds) -> Dimension:
         new_dim = Dimension(dims)
         _dimensions[dims] = new_dim
         return new_dim
+
+
+#: Caches for Dimension arithmetic, keyed by the operands' ``id()``. An id is only
+#: unique while its object is alive, so every entry also holds the operands
+#: themselves: while the entry exists, no other object can get the same id.
+#: (Interned dimensions live for the whole process anyway.)
+_products: dict[tuple[int, int], tuple] = {}
+_quotients: dict[tuple[int, int], tuple] = {}
+_powers: dict[tuple[int, float], tuple] = {}
+_MAX_CACHE_ENTRIES = 4096  # per cache; beyond that, results are computed every time
+
+
+def _remember(cache, key, entry):
+    """Store ``entry`` (operands..., result) unless the cache is full; return the result."""
+    if len(cache) < _MAX_CACHE_ENTRIES:
+        cache[key] = entry
+    return entry[-1]
 
 
 def is_scalar_type(obj: Any) -> bool:

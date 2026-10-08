@@ -129,9 +129,9 @@ class Unit(Quantity):
         def __truediv__(self, other: Any, /) -> Any: ...
         def __pow__(self, other: ArrayLike, /) -> Unit: ...  # type: ignore[override, unused-ignore]  # NumPy 2.5's stubs need it, 2.2's don't
 
+    #### Creating units ####
     automatically_register_units = True
 
-    #### CONSTRUCTION ####
     def __new__(
         cls,
         arr,
@@ -279,8 +279,7 @@ class Unit(Quantity):
 
         return u
 
-    #### METHODS ####
-
+    #### Names ####
     name = property(fget=lambda self: self._name, doc="The name of the unit")
 
     dispname = property(
@@ -293,7 +292,7 @@ class Unit(Quantity):
         doc="The LaTeX name of the unit",
     )
 
-    #### REPRESENTATION ####
+    #### Text ####
     def __repr__(self):
         return self.name
 
@@ -306,6 +305,7 @@ class Unit(Quantity):
     def _repr_latex_(self):
         return f"${self._latex()}$"
 
+    #### Arithmetic (units are constants: in-place operations are refused) ####
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         if method != "__call__":
             return NotImplemented
@@ -486,6 +486,7 @@ class Unit(Quantity):
     def __ipow__(self, other, modulo=None):  # type: ignore[misc]  # units are immutable
         raise TypeError("Units cannot be modified in-place")
 
+    #### Comparison and hashing ####
     def __eq__(self, other):
         if isinstance(other, Unit):
             return other.dim is self.dim and other.scale == self.scale

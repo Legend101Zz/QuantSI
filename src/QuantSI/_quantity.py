@@ -214,9 +214,7 @@ class Quantity(np.ndarray):
         def __pos__(self) -> Quantity: ...
         def __abs__(self) -> Quantity: ...
 
-    # ==========================================================================
-    # Construction and handling of numpy ufuncs
-    # ==========================================================================
+    #### Creating quantities ####
     def __new__(cls, arr, dim=None, dtype=None, copy=False, force_quantity=False):
         # Do not create dimensionless quantities, use pure numpy arrays instead
         if dim is DIMENSIONLESS and not force_quantity:
@@ -278,6 +276,44 @@ class Quantity(np.ndarray):
     def __array_finalize__(self, orig):
         self.dim = getattr(orig, "dim", DIMENSIONLESS)
 
+    @staticmethod
+    def with_dimensions(value, *args, **keywords):
+        """
+        Create a `Quantity` object with dim.
+
+        Parameters
+        ----------
+        value : {array_like, number}
+            The value of the dimension
+        args : {`Dimension`, sequence of float}
+            Either a single argument (a `Dimension`) or a sequence of 7 values.
+        kwds
+            Keywords defining the dim, see `Dimension` for details.
+
+        Returns
+        -------
+        q : `Quantity`
+            A `Quantity` object with the given dim
+
+        Examples
+        --------
+        All of these define an equivalent `Quantity` object:
+
+        >>> from QuantSI import *
+        >>> Quantity.with_dimensions(2, get_or_create_dimension(length=1))
+        2. * metre
+        >>> Quantity.with_dimensions(2, length=1)
+        2. * metre
+        >>> 2 * metre
+        2. * metre
+        """
+        if len(args) and isinstance(args[0], Dimension):
+            dimensions = args[0]
+        else:
+            dimensions = get_or_create_dimension(*args, **keywords)
+        return Quantity(value, dim=dimensions)
+
+    #### NumPy hooks: ufuncs and other NumPy functions ####
     def __array_ufunc__(self, uf, method, *inputs, **kwargs):
         handler = HANDLERS.get(uf)
         if handler is None:
@@ -344,50 +380,7 @@ class Quantity(np.ndarray):
         )
         return super().__array_function__(func, types, args, kwargs)
 
-    def __deepcopy__(self, memo):
-        return Quantity(self, copy=True)
-
-    # ==============================================================================
-    # Quantity-specific functions (not existing in ndarray)
-    # ==============================================================================
-    @staticmethod
-    def with_dimensions(value, *args, **keywords):
-        """
-        Create a `Quantity` object with dim.
-
-        Parameters
-        ----------
-        value : {array_like, number}
-            The value of the dimension
-        args : {`Dimension`, sequence of float}
-            Either a single argument (a `Dimension`) or a sequence of 7 values.
-        kwds
-            Keywords defining the dim, see `Dimension` for details.
-
-        Returns
-        -------
-        q : `Quantity`
-            A `Quantity` object with the given dim
-
-        Examples
-        --------
-        All of these define an equivalent `Quantity` object:
-
-        >>> from QuantSI import *
-        >>> Quantity.with_dimensions(2, get_or_create_dimension(length=1))
-        2. * metre
-        >>> Quantity.with_dimensions(2, length=1)
-        2. * metre
-        >>> 2 * metre
-        2. * metre
-        """
-        if len(args) and isinstance(args[0], Dimension):
-            dimensions = args[0]
-        else:
-            dimensions = get_or_create_dimension(*args, **keywords)
-        return Quantity(value, dim=dimensions)
-
-    ### ATTRIBUTES ###
+    #### Dimensions ####
     is_dimensionless = property(
         lambda self: self.dim.is_dimensionless,
         doc="Whether this is a dimensionless quantity.",
@@ -403,8 +396,6 @@ class Quantity(np.ndarray):
     @dimensions.setter
     def dimensions(self, dim):
         self.dim = dim
-
-    #### METHODS ####
 
     def has_same_dimensions(self, other: object) -> bool:
         """
@@ -423,6 +414,7 @@ class Quantity(np.ndarray):
         other_dim = get_dimensions(other)
         return (self.dim is other_dim) or (self.dim == other_dim)
 
+    #### Units and text ####
     def in_unit(self, u: Quantity, precision: int | None = None, python_code: bool = False) -> str:
         """
         Represent the quantity in a given unit. If `python_code` is ``True``,
@@ -552,11 +544,31 @@ class Quantity(np.ndarray):
         u = self.get_best_unit(*regs)
         return format_quantity(self, u, precision=precision, python_code=python_code)
 
-    # ==============================================================================
-    # Overwritten ndarray methods
-    # ==============================================================================
+    def __repr__(self):
+        return self.in_best_unit(python_code=True)
 
-    #### Setting/getting items ####
+    def __str__(self):
+        return self.in_best_unit()
+
+    def __format__(self, format_spec):
+        """``f"{q:.2f}"`` formats the number(s) in the best unit and adds the unit."""
+        from ._formatting import format_quantity
+
+        if format_spec == "":
+            return str(self)
+        return format_quantity(self, self.get_best_unit(), spec=format_spec)
+
+    def _latex(self, *args):
+        """LaTeX for this quantity; SymPy's ``latex()`` calls this too (passing its
+        printer, which is not needed). See `format_quantity_latex`."""
+        from ._formatting import format_quantity_latex
+
+        return format_quantity_latex(self)
+
+    def _repr_latex_(self):
+        return f"${self._latex(None)}$"
+
+    #### Getting and setting items ####
     def __getitem__(self, key):
         """Overwritten to assure that single elements (i.e., indexed with a
         single integer or a tuple of integers) retain their unit.
@@ -604,7 +616,7 @@ class Quantity(np.ndarray):
 
         return replace_with_quantity(np.asarray(self).tolist(), self.dim)
 
-    #### COMPARISONS ####
+    #### Comparisons ####
     def _comparison(self, other, operator_str, operation):
         is_scalar = is_scalar_type(other)
         if not is_scalar and not isinstance(other, np.ndarray):
@@ -634,40 +646,18 @@ class Quantity(np.ndarray):
     def __ne__(self, other):
         return self._comparison(other, "!=", operator.ne)
 
-    #### MAKE QUANTITY PICKABLE ####
+    #### Copying and pickling ####
     def __reduce__(self):
         return quantity_with_dimensions, (np.asarray(self), self.dim)
 
-    #### REPRESENTATION ####
-    def __repr__(self):
-        return self.in_best_unit(python_code=True)
+    def __deepcopy__(self, memo):
+        return Quantity(self, copy=True)
 
-    def _latex(self, *args):
-        """LaTeX for this quantity; SymPy's ``latex()`` calls this too (passing its
-        printer, which is not needed). See `format_quantity_latex`."""
-        from ._formatting import format_quantity_latex
-
-        return format_quantity_latex(self)
-
-    def _repr_latex_(self):
-        return f"${self._latex(None)}$"
-
-    def __str__(self):
-        return self.in_best_unit()
-
-    def __format__(self, format_spec):
-        """``f"{q:.2f}"`` formats the number(s) in the best unit and adds the unit."""
-        from ._formatting import format_quantity
-
-        if format_spec == "":
-            return str(self)
-        return format_quantity(self, self.get_best_unit(), spec=format_spec)
-
-    #### Mathematic methods ####
+    #### NumPy methods that need help with units ####
     cumsum = wrap_function_keep_dimensions(np.ndarray.cumsum)
+
     trace = wrap_function_keep_dimensions(np.trace)
 
-    #### Methods returning indices: the result has no units ####
     # (Without these, ndarray's methods would return indices labelled with the
     # quantity's dimensions. NumPy functions such as np.argsort are handled in
     # _array_functions.)
