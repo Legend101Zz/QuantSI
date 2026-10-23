@@ -401,7 +401,7 @@ class Unit(Quantity):
                 )  # To avoid issues with units like (second ** -1) ** -1
                 return u
             else:
-                return super().__pow__(second)
+                return super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
         elif ufunc.__name__ == "square":
             if self.iscompound:
                 dispname = f"({self.dispname})"

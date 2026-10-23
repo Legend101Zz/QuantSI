@@ -38,3 +38,15 @@ def test_unit_inequality_is_the_opposite_of_equality(left, right):
     # Units compare by dimension and scale, so units of different kinds are simply
     # not equal (`volt != ohm` used to raise DimensionMismatchError instead).
     assert (left != right) is (not (left == right))
+
+
+def test_unit_power_with_array_exponent():
+    result = mvolt ** np.array([2.0])
+    assert type(result) is Quantity
+    assert result.dim is volt.dim**2
+    np.testing.assert_allclose(np.asarray(result), [1e-6])
+
+
+def test_unit_power_rejects_multiple_exponents():
+    with pytest.raises(TypeError, match="Only length-1 arrays"):
+        metre ** np.array([2.0, 3.0])
