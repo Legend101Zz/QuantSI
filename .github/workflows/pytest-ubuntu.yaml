@@ -43,7 +43,7 @@ jobs:
 
     - name: Run tests
       run: |
-        pdm run -v pytest --cov=QuantSI --cov-report lcov
+        pdm run -v pytest --cov=QuantSI --cov-report=term-missing --cov-report=lcov --cov-fail-under=100
 
     - name: Publish coverage
       if: matrix.python-version == '3.13'
