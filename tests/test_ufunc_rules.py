@@ -5,6 +5,7 @@ import pytest
 
 from QuantSI._core import ufuncs as _ufuncs
 from QuantSI._core.ufuncs import RULES, Rule
+from QuantSI.fundamentalunits import Quantity
 
 #: Which rules each old list stands for.
 LEGACY_LISTS = {
@@ -95,3 +96,22 @@ def test_angle_conversions_need_dimensionless_input():
     assert np.degrees(np.pi) == 180
     with pytest.raises(DimensionMismatchError):
         np.degrees(3 * metre)
+
+
+@pytest.mark.parametrize("ufunc", [np.sin, np.hypot])
+def test_dimensionless_ufuncs_on_explicit_quantities(ufunc):
+    values = np.array([0.1, 0.2])
+    q = Quantity(values)
+    arguments = (q,) if ufunc.nin == 1 else (q, q)
+    plain_arguments = (values,) if ufunc.nin == 1 else (values, values)
+    result = ufunc(*arguments)
+    assert type(result) is np.ndarray
+    np.testing.assert_allclose(result, ufunc(*plain_arguments))
+
+
+def test_unrecognised_ufunc_returns_not_implemented():
+    from QuantSI.allunits import metre
+
+    custom_ufunc = np.frompyfunc(lambda x: x, 1, 1)
+    with pytest.raises(TypeError, match="NotImplemented"):
+        custom_ufunc(3 * metre)

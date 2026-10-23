@@ -42,6 +42,12 @@ def test_empty_product_is_dimensionless():
     assert (np.array([]) * metre).prod() == 1.0
 
 
+def test_product_with_empty_result_is_dimensionless():
+    result = (np.empty((2, 0)) * metre).prod(axis=0)
+    assert type(result) is np.ndarray
+    assert result.shape == (0,)
+
+
 def test_sums_keep_their_dimension():
     assert LENGTHS.sum().dim is metre.dim
     assert np.add.reduce(GRID, axis=1).dim is metre.dim

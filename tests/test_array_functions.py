@@ -107,7 +107,7 @@ CASES = {
     "cumulative_sum": [("1d", lambda ns: np.cumulative_sum(ns.m), "m")],
     "nancumsum": [("1d", lambda ns: np.nancumsum(ns.m), "m")],
     "cumulative_prod": [
-        ("with dimensions", lambda ns: np.cumulative_prod(ns.m * ns.m), "TypeError")
+        ("with dimensions", lambda ns: np.cumulative_prod(ns.m * ns.m), "TypeError"),
     ],
     "diff": [("1d", lambda ns: np.diff(ns.m), "m")],
     "ediff1d": [("1d", lambda ns: np.ediff1d(ns.m), "m")],
@@ -365,10 +365,42 @@ CASES = {
         ("density", lambda ns: np.histogram(ns.m, bins=2, density=True), ("1/m", "m")),
         ("bin edges", lambda ns: np.histogram(ns.m, bins=ns.m), ("plain", "m")),
         ("mismatch", lambda ns: np.histogram(ns.m, bins=ns.s), "DimensionMismatchError"),
+        (
+            "range",
+            lambda ns: np.histogram(ns.m, bins=2, range=(0 * ns.unit, 5 * ns.unit)),
+            ("plain", "m"),
+        ),
+        (
+            "range mismatch",
+            lambda ns: np.histogram(ns.m, range=(0 * ns.second, 5 * ns.second)),
+            "DimensionMismatchError",
+        ),
     ],
     "histogram_bin_edges": [("1d", lambda ns: np.histogram_bin_edges(ns.m, bins=2), "m")],
     "histogram2d": [
         ("counts", lambda ns: np.histogram2d(ns.m, ns.s, bins=2), ("plain", "m", "s")),
+        (
+            "bin edges per axis",
+            lambda ns: np.histogram2d(ns.m, ns.s, bins=[ns.m, ns.s]),
+            ("plain", "m", "s"),
+        ),
+        (
+            "range per axis",
+            lambda ns: np.histogram2d(
+                ns.m, ns.s, bins=[2, 3], range=[(0 * ns.unit, 5 * ns.unit), None]
+            ),
+            ("plain", "m", "s"),
+        ),
+        (
+            "bin edge mismatch",
+            lambda ns: np.histogram2d(ns.m, ns.s, bins=[ns.s, ns.m]),
+            "DimensionMismatchError",
+        ),
+        (
+            "range mismatch",
+            lambda ns: np.histogram2d(ns.m, ns.s, range=[(0 * ns.second, 5 * ns.second), None]),
+            "DimensionMismatchError",
+        ),
         (
             "density",
             lambda ns: np.histogram2d(ns.m, ns.s, bins=2, density=True),
@@ -378,6 +410,11 @@ CASES = {
     "histogramdd": [
         ("counts", lambda ns: np.histogramdd(ns.m2.T, bins=2), ("plain", ("m", "m"))),
         ("density", lambda ns: np.histogramdd(ns.m2.T, bins=2, density=True), ("1/m2", ("m", "m"))),
+        (
+            "separate axes",
+            lambda ns: np.histogramdd((ns.m, ns.s), bins=2, weights=ns.m, density=True),
+            ("1/(m s)", ("m", "s")),
+        ),
     ],
     "interp": [
         ("1d", lambda ns: np.interp(ns.m, ns.m, ns.s), "s"),
@@ -400,9 +437,18 @@ CASES = {
         ("1d", lambda ns: np.gradient(ns.m), "m"),
         ("spacing", lambda ns: np.gradient(ns.m, ns.s), "m/s"),
         ("2d", lambda ns: np.gradient(ns.m2), ("m", "m")),
+        (
+            "spacing per axis",
+            lambda ns: np.gradient(ns.m2, 2 * ns.unit, 3 * ns.second),
+            ("plain", "m/s"),
+        ),
     ],
-    "cumprod": [("with dimensions", lambda ns: np.cumprod(ns.M * ns.M), "TypeError")],
-    "nancumprod": [("with dimensions", lambda ns: np.nancumprod(ns.m * ns.m), "TypeError")],
+    "cumprod": [
+        ("with dimensions", lambda ns: np.cumprod(ns.M * ns.M), "TypeError"),
+    ],
+    "nancumprod": [
+        ("with dimensions", lambda ns: np.nancumprod(ns.m * ns.m), "TypeError"),
+    ],
     # ---- HANDLED: products and linear algebra -------------------------------------------
     "dot": [
         ("1d", lambda ns: np.dot(ns.m, ns.s), "m s"),
@@ -482,6 +528,11 @@ CASES = {
     "lib.scimath.sqrt": [("1d", lambda ns: np.lib.scimath.sqrt(ns.m), "m^0.5")],
     "lib.scimath.power": [
         ("1d", lambda ns: np.lib.scimath.power(ns.m, 2), "m2"),
+        (
+            "multiple exponents",
+            lambda ns: np.lib.scimath.power(ns.m, [1, 2, 3, 4]),
+            "TypeError",
+        ),
         (
             "exponent with dimensions",
             lambda ns: np.lib.scimath.power(ns.m, ns.m),
@@ -681,6 +732,26 @@ def test_quantities_of_different_kinds_are_never_equal():
 def test_dimensionless_functions_accept_dimensionless_quantities():
     x = Quantity([0.1, 0.2])  # an explicitly constructed, dimensionless Quantity
     np.testing.assert_allclose(np.sinc(x), np.sinc([0.1, 0.2]))
+
+
+@pytest.mark.parametrize("function", [np.cumprod, np.nancumprod, np.cumulative_prod])
+def test_dimensionless_cumulative_products(function):
+    values = np.array([2.0, 3.0, 4.0])
+    result = function(Quantity(values))
+    assert type(result) is np.ndarray
+    np.testing.assert_array_equal(result, function(values))
+
+
+def test_concatenate_dimensionless_quantities():
+    result = np.concatenate([Quantity([1, 2]), np.array([3, 4])])
+    assert type(result) is np.ndarray
+    np.testing.assert_array_equal(result, [1, 2, 3, 4])
+
+
+def test_where_with_quantity_condition_returns_plain_indices():
+    (indices,) = np.where(Quantity([True, False, True]))
+    assert type(indices) is np.ndarray
+    np.testing.assert_array_equal(indices, [0, 2])
 
 
 def test_record_array_functions_are_refused():
