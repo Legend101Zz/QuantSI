@@ -20,6 +20,12 @@ Functions QuantSI implements
     ``np.einsum``, ...), and linear algebra (``np.linalg.inv`` gives the inverse
     dimensions, ``np.linalg.det`` the dimensions to the power of the matrix size).
 
+    For ``np.concatenate`` and ``np.stack``, an ``out=`` buffer must already have
+    the result's dimensions. A buffer with different dimensions, including a
+    plain array for a dimension-bearing result, raises ``DimensionMismatchError``
+    before any values are written. A valid buffer is filled and returned without
+    changing its dimensions.
+
 Functions whose results have no units
     Indices (``np.argsort``, ``np.nonzero``), booleans and counts
     (``np.isin``, after checking the dimensions, and ``np.count_nonzero``), shapes

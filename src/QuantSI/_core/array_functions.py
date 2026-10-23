@@ -237,11 +237,17 @@ def _with_output(as_quantity, result, dim, out):
 
 
 @implements(np.concatenate, np.stack)
-def _concatenate(function, as_quantity, /, arrays, *args, out=None, **kwargs):
+def _concatenate(function, as_quantity, /, arrays, axis=0, out=None, **kwargs):
     arrays = list(arrays)
     dim = _shared_dimensions(arrays, function)
+    if out is not None:
+        # Compare dimensions directly: even an all-zero output buffer must have
+        # the right units, and must not be written to before this check passes.
+        fail_for_dimension_mismatch(
+            _dim(out), dim, f"numpy.{function.__name__} needs out with the result's dimensions"
+        )
     raw_out = None if out is None else np.asarray(out)
-    result = function(strip_units(arrays), *args, out=raw_out, **kwargs)
+    result = function(strip_units(arrays), axis=axis, out=raw_out, **kwargs)
     return _with_output(as_quantity, result, dim, out)
 
 

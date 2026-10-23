@@ -203,7 +203,7 @@ CASES = {
         ("1d", lambda ns: np.concatenate([ns.m, ns.m]), "m"),
         ("zeros", lambda ns: np.concatenate([ns.m, np.zeros(2)]), "m"),
         ("mismatch", lambda ns: np.concatenate([ns.m, ns.s]), "DimensionMismatchError"),
-        ("out", lambda ns: np.concatenate([ns.m, ns.m], out=np.zeros(8) * ns.second), "m"),
+        ("out", lambda ns: np.concatenate([ns.m, ns.m], out=np.zeros(8) * ns.unit), "m"),
     ],
     "stack": [
         ("1d", lambda ns: np.stack([ns.m, ns.m]), "m"),
@@ -765,6 +765,50 @@ def test_zero_arrays_can_join_matching_dimensions(function, zero_position):
     result = function(arrays)
     assert result.dim is metre.dim
     np.testing.assert_array_equal(np.asarray(result), function([np.asarray(a) for a in arrays]))
+
+
+@pytest.mark.parametrize("function", [np.concatenate, np.stack])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("positional_out", [False, True])
+def test_joining_into_matching_output(function, dtype, axis, positional_out):
+    arrays = [np.arange(4.0).reshape(2, 2) * metre, np.ones((2, 2)) * metre]
+    expected = function([np.asarray(a) for a in arrays], axis=axis, dtype=dtype)
+    out = Quantity(np.zeros_like(expected), dim=metre.dim)
+    if positional_out:
+        result = function(arrays, axis, out)
+    else:
+        result = function(arrays, axis=axis, out=out)
+    assert result is out
+    assert out.dim is metre.dim
+    assert out.dtype == dtype
+    np.testing.assert_array_equal(np.asarray(out), expected)
+    with pytest.raises(TypeError):
+        function(arrays, axis=axis, out=out, dtype=dtype)
+
+
+@pytest.mark.parametrize("function", [np.concatenate, np.stack])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("output_dim", [DIMENSIONLESS, S])
+@pytest.mark.parametrize("fill_value", [0, 7])
+def test_joining_rejects_incompatible_output_before_writing(function, dtype, output_dim, fill_value):
+    arrays = [np.array([1.0, 2.0]) * metre, np.array([3.0, 4.0]) * metre]
+    shape = (4,) if function is np.concatenate else (2, 2)
+    out = Quantity(np.full(shape, fill_value, dtype=dtype), dim=output_dim)
+    before = np.asarray(out).copy()
+    with pytest.raises(DimensionMismatchError, match="out"):
+        function(arrays, out=out)
+    assert getattr(out, "dim", DIMENSIONLESS) is output_dim
+    np.testing.assert_array_equal(np.asarray(out), before)
+
+
+@pytest.mark.parametrize("function", [np.concatenate, np.stack])
+def test_joining_dimensionless_values_into_plain_output(function):
+    arrays = [Quantity([1, 2]), np.array([3, 4])]
+    expected = function([np.asarray(a) for a in arrays])
+    out = np.empty_like(expected)
+    assert function(arrays, out=out) is out
+    np.testing.assert_array_equal(out, expected)
 
 
 def test_where_with_quantity_condition_returns_plain_indices():
