@@ -7,8 +7,6 @@ Brian2's `brian2.units` is to become a thin facade over QuantSI. The CI workflow
 2. applies `brian2-companion.patch`, the changes Brian2 needs alongside:
    * `spatialneuron/morphology.py` multiplied the result of `np.hstack` by
      `meter` because `np.hstack` used to drop units; it no longer does;
-   * `test_format_quantity` expected `f"{q:g}"` to give the bare number in base
-     SI units; it now gives the number in the best unit, with the unit;
    * `test_switching_off_unit_checks` tested `fundamentalunits.unit_checking`,
      which QuantSI does not have;
 3. runs Brian2's test suite (no code generation, and the numpy target).

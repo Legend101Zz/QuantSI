@@ -57,7 +57,8 @@ happens on that rare path.
     The ``Unit`` class.
 ``_core.formatting``
     Turning quantities into text: ``format_quantity`` (``str``, ``repr``,
-    ``format``, ``in_unit``) and ``format_quantity_latex``.
+    ``in_unit``, ``in_best_unit``) and ``format_quantity_latex``. Explicit numeric
+    format specifications use NumPy's formatting of the raw SI value.
 ``_core.parsing``
     Reading quantities from text (``parse_quantity``) without ``eval``.
 ``_core.decorators``

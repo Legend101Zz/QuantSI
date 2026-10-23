@@ -15,17 +15,28 @@ A quantity is written in the unit in which its values read best::
     '25.123 mV'
 
 The numbers are formatted by NumPy and follow its print options
-(``np.set_printoptions``, ``np.printoptions``). A format specification applies to
-each number, and the unit is added::
+(``np.set_printoptions``, ``np.printoptions``). An empty format specification
+keeps the display unit. An explicit numeric format specification formats a
+scalar's stored value in base SI units, without a unit suffix::
 
+    >>> f"{3 * mV}"
+    '3. mV'
     >>> f"{3 * mV:.2f}"
+    '0.00'
+    >>> f"{1 * ms:g}"
+    '0.001'
+
+QuantSI stores values in base SI units and does not remember the unit used to
+create them. To format in a chosen unit, divide by that unit and append its name::
+
+    >>> f"{(3 * mV) / mV:.2f} mV"
     '3.00 mV'
-    >>> import numpy as np
-    >>> f"{np.array([1, 2.5]) * ms:.1f}"
-    '[1.0 2.5] ms'
+
+Non-empty numeric format specifications on arrays raise ``TypeError``, as they
+do for NumPy arrays.
 
 To get the bare value in base SI units, convert explicitly: ``float(q)``,
-``np.asarray(q)``, or divide by a unit (``q / mV``).
+``np.asarray(q)``. Dividing by a unit (``q / mV``) gives the value in that unit.
 
 Jupyter notebooks show quantities as LaTeX (``q._repr_latex_()``), and SymPy's
 ``latex()`` can print them as well.

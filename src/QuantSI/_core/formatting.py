@@ -1,7 +1,8 @@
 """Turning quantities into text.
 
-`format_quantity` is the one place that writes a quantity as text; ``str``,
-``repr``, ``format``, ``in_unit`` and ``in_best_unit`` all go through it.
+`format_quantity` writes a quantity in a display unit; ``str``, ``repr``,
+``in_unit`` and ``in_best_unit`` all go through it. Explicit numeric format
+specifications use NumPy's formatting of the raw SI value instead.
 
 In this file: ``format_quantity`` (the core) and its helper ``_with_unit``,
 ``format_quantity_latex``, and the module-level ``in_unit`` and ``in_best_unit``.
@@ -24,24 +25,15 @@ def format_quantity(
     unit: Quantity,
     precision: int | None = None,
     python_code: bool = False,
-    spec: str = "",
 ) -> str:
     """Write ``quantity`` in ``unit`` (which must have the same dimensions).
 
     With ``python_code=False`` the text is for people (``'3. mV'``); with
     ``python_code=True`` it is an expression that evaluates back to the quantity
     (``'3. * mvolt'``). NumPy formats the numbers, following its print options;
-    ``precision`` overrides the print option of that name. Alternatively, ``spec``
-    is a format specification (as in ``f"{x:.2f}"``) applied to each number.
+    ``precision`` overrides the print option of that name.
     """
-    if spec and precision is not None:
-        raise ValueError("Give either a precision or a format specification, not both.")
     value = np.asarray(quantity / unit)
-    if spec:  # the specification decides the layout, including padding
-        if value.shape == ():
-            return _with_unit(format(value.item(), spec), quantity, unit, python_code)
-        text = np.array2string(value, formatter={"all": lambda x: format(x, spec)})
-        return _with_unit(text, quantity, unit, python_code)
     if value.shape == ():
         # A scalar is written as a one-element array without its brackets: NumPy
         # scalars ignore the print options, and 0-d arrays are written with the

@@ -561,12 +561,10 @@ class Quantity(np.ndarray):
         return self.in_best_unit()
 
     def __format__(self, format_spec):
-        """``f"{q:.2f}"`` formats the number(s) in the best unit and adds the unit."""
-        from .formatting import format_quantity
-
+        """Keep units for an empty spec; otherwise format the raw SI value as NumPy does."""
         if format_spec == "":
             return str(self)
-        return format_quantity(self, self.get_best_unit(), spec=format_spec)
+        return super().__format__(format_spec)
 
     def _latex(self, *args):
         """LaTeX for this quantity; SymPy's ``latex()`` calls this too (passing its

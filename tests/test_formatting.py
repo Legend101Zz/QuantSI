@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from QuantSI._core.formatting import format_quantity
-from QuantSI.allunits import mvolt, volt
+from QuantSI.allunits import msecond, mvolt, second, volt
 
 
 def old_scalar_text(value, precision=None):
@@ -48,12 +48,10 @@ def test_python_code_evaluates_back():
 @pytest.mark.parametrize(
     ("value", "spec", "expected"),
     [
-        (3 * mvolt, ".2f", "3.00 mV"),
+        (3 * mvolt, ".2f", "0.00"),
         (3 * mvolt, "", "3. mV"),
-        (0.025123456 * volt, ".3g", "25.1 mV"),
-        (np.array([1.0, 2.5]) * mvolt, ".1f", "[1.0 2.5] mV"),
-        (np.array([1.0, 2.5]) * mvolt, ".1e", "[1.0e+00 2.5e+00] mV"),
-        (3 * mvolt, ">8.1f", "     3.0 mV"),
+        (0.025123456 * volt, ".3g", "0.0251"),
+        (3 * mvolt, ">8.1f", "     0.0"),
     ],
 )
 def test_format_specifications(value, spec, expected):
@@ -66,6 +64,15 @@ def test_invalid_format_specification():
         format(3 * mvolt, ".2q")
 
 
-def test_precision_and_spec_together_are_refused():
-    with pytest.raises(ValueError, match="not both"):
-        format_quantity(3 * mvolt, mvolt, precision=2, spec=".2f")
+@pytest.mark.parametrize("value", [0.001 * second, 1 * msecond])
+def test_scalar_formatting_does_not_depend_on_input_unit(value):
+    assert f"{value:.2f}" == "0.00"
+    assert f"{value:g}" == "0.001"
+    assert f"{value}" == "1. ms"
+
+
+@pytest.mark.parametrize("spec", [".1f", ".1e"])
+def test_array_numeric_formatting_is_unsupported(spec):
+    q = np.array([1.0, 2.5]) * mvolt
+    with pytest.raises(TypeError, match="unsupported format string"):
+        format(q, spec)

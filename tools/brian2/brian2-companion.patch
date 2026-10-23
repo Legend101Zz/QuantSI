@@ -16,18 +16,7 @@ diff --git a/brian2/tests/test_units.py b/brian2/tests/test_units.py
 index 7fe6979c..02262ac2 100644
 --- a/brian2/tests/test_units.py
 +++ b/brian2/tests/test_units.py
-@@ -385,7 +385,9 @@ def test_format_quantity():
-     # a format spec
-     q = 0.5 * ms
-     assert f"{q}" == f"{q!s}" == str(q)
--    assert f"{q:g}" == f"{float(q)}"
-+    # A format specification formats the number in the best unit and keeps the unit
-+    assert f"{q:g}" == "0.5 ms"
-+    assert f"{float(q):g}" == "0.0005"
- 
- 
- @pytest.mark.codegen_independent
-@@ -1393,25 +1395,6 @@ def test_get_best_unit():
+@@ -1393,25 +1393,6 @@ def test_get_best_unit():
          assert str(expected_unit) in ar.in_best_unit()
  
  
@@ -53,7 +42,7 @@ index 7fe6979c..02262ac2 100644
  @pytest.mark.codegen_independent
  def test_fail_for_dimension_mismatch():
      """
-@@ -1570,7 +1553,6 @@ def test_constants():
+@@ -1570,7 +1551,6 @@ def test_constants():
      test_check_units()
      test_get_unit()
      test_get_best_unit()

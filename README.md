@@ -18,7 +18,7 @@ used on its own.
 array([-70., -55.]) * mvolt
 >>> 2 * nA * 50 * Mohm
 100. * mvolt
->>> f"{v.max():.1f}"
+>>> f"{v.max() / mV:.1f} mV"
 '-55.0 mV'
 >>> v + 1 * nA
 Traceback (most recent call last):
