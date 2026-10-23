@@ -11,6 +11,7 @@ plain arrays, and checks the outcome against an expectation:
 a tuple of the above               the function returns a tuple
 """
 
+import itertools
 import pathlib
 import types
 import warnings
@@ -746,6 +747,24 @@ def test_concatenate_dimensionless_quantities():
     result = np.concatenate([Quantity([1, 2]), np.array([3, 4])])
     assert type(result) is np.ndarray
     np.testing.assert_array_equal(result, [1, 2, 3, 4])
+
+
+@pytest.mark.parametrize("function", [np.concatenate, np.stack, np.block])
+@pytest.mark.parametrize("order", list(itertools.permutations(range(3))))
+def test_zero_arrays_do_not_hide_mixed_dimensions(function, order):
+    arrays = [np.zeros(1), np.array([1.0]) * metre, np.array([2.0]) * second]
+    with pytest.raises(DimensionMismatchError, match="same dimensions"):
+        function([arrays[i] for i in order])
+
+
+@pytest.mark.parametrize("function", [np.concatenate, np.stack, np.block])
+@pytest.mark.parametrize("zero_position", range(3))
+def test_zero_arrays_can_join_matching_dimensions(function, zero_position):
+    arrays = [np.array([1.0]) * metre, np.array([2.0]) * metre]
+    arrays.insert(zero_position, np.zeros(1))
+    result = function(arrays)
+    assert result.dim is metre.dim
+    np.testing.assert_array_equal(np.asarray(result), function([np.asarray(a) for a in arrays]))
 
 
 def test_where_with_quantity_condition_returns_plain_indices():

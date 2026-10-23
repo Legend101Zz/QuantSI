@@ -202,15 +202,16 @@ def _dim(obj):
 def _shared_dimensions(values, function):
     """The dimensions of ``values``, which must agree (a plain 0 matches anything)."""
     values = list(values)
-    for value in values[1:]:
-        fail_for_dimension_mismatch(
-            values[0], value, f"numpy.{function.__name__} needs values with the same dimensions"
-        )
+    # A leading plain zero cannot be the reference: it would match both metres
+    # and seconds without checking whether those inputs agree with each other.
+    reference = next((value for value in values if _dim(value) is not DIMENSIONLESS), None)
+    if reference is None:
+        return DIMENSIONLESS
     for value in values:
-        dim = _dim(value)
-        if dim is not DIMENSIONLESS:
-            return dim
-    return DIMENSIONLESS
+        fail_for_dimension_mismatch(
+            reference, value, f"numpy.{function.__name__} needs values with the same dimensions"
+        )
+    return _dim(reference)
 
 
 def _leaves(nested):
