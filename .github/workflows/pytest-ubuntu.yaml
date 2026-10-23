@@ -10,10 +10,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # The oldest versions QuantSI supports (see pyproject.toml) ...
-          - python-version: "3.12"
-            numpy: "numpy==2.2.*"
-          # ... and the newest.
+          # The oldest versions QuantSI supports (see pyproject.toml).
+          - python-version: "3.13"
+            numpy: "numpy==2.3.*"
+          # Also test current NumPy on both Python versions.
           - python-version: "3.13"
             numpy: "numpy"
           - python-version: "3.14"
@@ -46,7 +46,7 @@ jobs:
         pdm run -v pytest --cov=QuantSI --cov-report=term-missing --cov-report=lcov --cov-fail-under=100
 
     - name: Publish coverage
-      if: matrix.python-version == '3.13'
+      if: matrix.python-version == '3.13' && matrix.numpy == 'numpy'
       uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e  # v2.3.7
       with:
         format: lcov

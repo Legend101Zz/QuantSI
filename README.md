@@ -10,6 +10,9 @@ operation, that the physics makes sense. It is the unit system of the
 [Brian2](https://briansimulator.org) simulator, packaged so that it can also be
 used on its own.
 
+QuantSI requires Python 3.13 or newer and NumPy 2.3 or newer. Minimum supported
+versions follow [SPEC-0](https://scientific-python.org/specs/spec-0000/).
+
 ```python
 >>> import numpy as np
 >>> from QuantSI import Mohm, mV, nA, parse_quantity
