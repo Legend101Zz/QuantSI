@@ -50,3 +50,13 @@ def test_unit_power_with_array_exponent():
 def test_unit_power_rejects_multiple_exponents():
     with pytest.raises(TypeError, match="Only length-1 arrays"):
         metre ** np.array([2.0, 3.0])
+
+
+def test_unit_value_must_match_its_scale():
+    with pytest.raises(AssertionError, match="Unit value has to be 10\\*\\*scale"):
+        Unit(2.0, scale=0)
+
+
+def test_unit_ufunc_reduction_is_not_supported():
+    with pytest.raises(TypeError, match="NotImplemented"):
+        np.add.reduce(metre)

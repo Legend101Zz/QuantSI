@@ -84,3 +84,13 @@ def test_registrations_are_undone_between_tests():
         register_new_unit(pfarad / mmetre**2)
         assert str(q) != before
     assert str(q) == before
+
+
+def test_old_best_unit_method_warns_and_forwards_registries():
+    from numpy.exceptions import VisibleDeprecationWarning
+
+    registry = UnitRegistry()
+    registry.add(volt)
+    q = 0.002 * volt
+    with pytest.warns(VisibleDeprecationWarning, match="renamed to Quantity.get_best_unit"):
+        assert q._get_best_unit(registry) is q.get_best_unit(registry) is volt

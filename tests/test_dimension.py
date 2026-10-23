@@ -1,5 +1,7 @@
 """Dimension behaviour, including equality checked against the old implementation."""
 
+import copy
+
 import numpy as np
 import pytest
 
@@ -82,3 +84,12 @@ def test_full_cache_still_computes(monkeypatch):
 def test_arithmetic_with_a_non_dimension_fails():
     with pytest.raises(AttributeError):
         volt.dim * 3
+
+
+def test_dimension_power_rejects_multiple_exponents():
+    with pytest.raises(TypeError, match="Too many exponents"):
+        metre.dim ** np.array([1, 2])
+
+
+def test_deepcopy_preserves_dimension_singletons():
+    assert copy.deepcopy(metre.dim) is metre.dim

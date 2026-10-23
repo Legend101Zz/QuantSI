@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from QuantSI._core.quantity import _new_quantity
-from QuantSI.allunits import volt
+from QuantSI.allunits import second, volt
 from QuantSI.fundamentalunits import DIMENSIONLESS, Quantity
 
 VALUES = [
@@ -33,3 +33,22 @@ def test_fast_constructor_matches_quantity(values, dim):
     if isinstance(values, np.ndarray) and values.size > 0 and values.ndim > 0:
         # no copy: the result is a view of NumPy's result
         assert np.shares_memory(np.asarray(fast), values)
+
+
+def test_non_iterable_array_like_scalar():
+    class ArrayScalar:
+        def __array__(self, dtype=None, copy=None):
+            return np.array(3.5, dtype=dtype)
+
+    result = Quantity(ArrayScalar())
+    assert result.dim is DIMENSIONLESS
+    assert result.shape == ()
+    assert result.item() == 3.5
+
+
+def test_dimensions_property_can_be_assigned():
+    q = 3 * volt
+    q.dimensions = second.dim
+    assert q.dim is second.dim
+    assert q.dimensions is second.dim
+    assert np.asarray(q).item() == 3
