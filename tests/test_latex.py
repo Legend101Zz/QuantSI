@@ -58,3 +58,12 @@ def test_sympy_can_still_print_quantities():
     assert f"${sympy.latex(q)}$" == q._repr_latex_()
     assert sympy.latex(volt) == volt._latex()
     assert sympy.latex(volt.dim) == volt.dim._latex()
+
+
+def test_unit_notebook_representation():
+    assert metre._repr_latex_() == r"$\mathrm{m}$"
+
+
+def test_latex_rejects_arrays_with_more_than_two_axes():
+    with pytest.raises(NotImplementedError, match="3-d matrix"):
+        (np.ones((2, 2, 2)) * metre)._repr_latex_()

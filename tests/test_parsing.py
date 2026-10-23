@@ -175,3 +175,9 @@ def test_nan_does_not_read_back():
     # Documented: NaN and infinity are not part of the language.
     with pytest.raises(QuantityParseError, match="'nan' is not a known unit"):
         parse_quantity(repr(np.array([np.nan, 1.0]) * mvolt))
+
+
+@pytest.mark.parametrize("value", [None, 3, [1, 2]])
+def test_parse_quantity_requires_text(value):
+    with pytest.raises(TypeError, match=f"Expected a string, got {type(value).__name__}"):
+        parse_quantity(value)

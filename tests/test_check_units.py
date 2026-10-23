@@ -68,3 +68,21 @@ def test_stacked_decorators_check_the_original_arguments():
     assert double._arg_names == ("x", "factor")
     with pytest.raises(DimensionMismatchError):
         double(1 * second)
+
+
+def test_unitless_argument_rejects_non_numeric_values():
+    @check_units(x=1)
+    def identity(x):
+        return x
+
+    with pytest.raises(TypeError, match="Argument x is not a unitless value/array"):
+        identity(object())
+
+
+def test_argument_unit_reference_must_be_present():
+    @check_units(x="missing")
+    def identity(x):
+        return x
+
+    with pytest.raises(TypeError, match="there is no argument of that name"):
+        identity(3 * metre)
